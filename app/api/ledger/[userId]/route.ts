@@ -12,8 +12,10 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
         accounts: {
           where: { isActive: true },
           include: {
-            club: true,
-            deals: { where: { isActive: true } },
+  deals: { 
+    where: { isActive: true },
+    include: { club: true }
+  },
             weeklyReports: {
               orderBy: { week: { year: "desc" } },
               include: { week: true },
