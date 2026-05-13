@@ -1,0 +1,171 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum TransactionType {
+  SETTLEMENT
+  TRANSFER
+  DEPOSIT
+  WITHDRAWAL
+  RAKEBACK
+}
+
+enum TransactionDirection {
+  I_PAY_USER
+  USER_PAYS_ME
+  USER1_TO_USER2
+}
+
+enum TransactionMethod {
+  CASH
+  INTERNAL
+  BANK
+  CRYPTO
+}
+
+enum CalcType {
+  STANDARD
+  ADJUSTED
+}
+
+model User {
+  id             Int      @id @default(autoincrement())
+  telegramId     String?  @unique
+  telegramHandle String?
+  name           String
+  email          String?  @unique
+  role           Role     @default(USER)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  accounts         Account[]
+  transactions     Transaction[] @relation("UserTransactions")
+  sentTransactions Transaction[] @relation("SentTransactions")
+  balance          Balance?
+}
+
+model Club {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  app       String?
+  currency  String   @default("USD")
+  calcType  CalcType @default(STANDARD)
+  chipValue Float    @default(1)
+  logoUrl   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  deals     Deal[]
+}
+
+model Account {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  app        String?
+  nickname   String
+  accountId  String?
+  superagent String?
+  agent      String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  user          User           @relation(fields: [userId], references: [id])
+  deals         Deal[]
+  weeklyReports WeeklyReport[]
+}
+
+model Deal {
+  id          Int      @id @default(autoincrement())
+  accountId   Int
+  clubId      Int
+  rakebackPct Float    @default(0)
+  rebatePct   Float    @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+  club    Club    @relation(fields: [clubId], references: [id])
+}
+
+model Week {
+  id        Int      @id @default(autoincrement())
+  year      Int
+  weekNum   Int
+  label     String?
+  createdAt DateTime @default(now())
+
+  weeklyReports WeeklyReport[]
+  transactions  Transaction[]
+
+  @@unique([year, weekNum])
+}
+
+model WeeklyReport {
+  id             Int      @id @default(autoincrement())
+  accountId      Int
+  weekId         Int
+  result         Float    @default(0)
+  rake           Float    @default(0)
+  bbj            Float    @default(0)
+  mtt            Float    @default(0)
+  rakebackAmount Float    @default(0)
+  netResult      Float    @default(0)
+  exchangeRate   Float    @default(1)
+  importedAt     DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+  week    Week    @relation(fields: [weekId], references: [id])
+
+  @@unique([accountId, weekId])
+}
+
+model Transaction {
+  id          Int                  @id @default(autoincrement())
+  userId      Int
+  toUserId    Int?
+  weekId      Int?
+  type        TransactionType
+  direction   TransactionDirection
+  method      TransactionMethod    @default(INTERNAL)
+  amount      Float
+  currency    String               @default("USD")
+  description String?
+  isActive    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+
+  user   User  @relation("UserTransactions", fields: [userId], references: [id])
+  toUser User? @relation("SentTransactions", fields: [toUserId], references: [id])
+  week   Week? @relation(fields: [weekId], references: [id])
+}
+
+model Balance {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  amountEur Float    @default(0)
+  amountUsd Float    @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model ExchangeRate {
+  id           Int      @id @default(autoincrement())
+  fromCurrency String
+  toCurrency   String
+  rate         Float
+  validOn      DateTime @default(now())
+
+  @@unique([fromCurrency, toCurrency, validOn])
+}
