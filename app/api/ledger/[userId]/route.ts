@@ -75,8 +75,8 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
         const week = weekMap.get(key)!
         week.accounts.push({
           account: account.nickname,
-          club: account.club.name,
-          currency: account.club.currency,
+          club: deal?.club?.name ?? "Unknown",
+currency: deal?.club?.currency ?? "USD",
           rate: report.exchangeRate,
           result: report.result,
           rake: report.rake,
