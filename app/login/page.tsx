@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { signIn } from "next-auth/react"
 import { useEffect } from "react"
 
@@ -28,11 +29,8 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl border border-gray-200 p-10 w-full max-w-sm text-center shadow-sm">
         {/* Logo */}
-        <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center mx-auto mb-5">
-          <span className="text-white font-bold text-lg tracking-tight">PF</span>
-        </div>
+        <Image src="/logo.png" alt="Poker in Asia" width={200} height={60} className="mx-auto mb-5" />
 
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Poker Finance</h1>
         <p className="text-sm text-gray-500 mb-8">Sign in to view your ledger</p>
 
         {/* How it works */}
