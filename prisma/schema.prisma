@@ -87,13 +87,19 @@ model Account {
 }
 
 model Deal {
-  id          Int      @id @default(autoincrement())
-  accountId   Int
-  clubId      Int
-  rakebackPct Float    @default(0)
-  rebatePct   Float    @default(0)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  accountId       Int
+  clubId          Int
+  clubRakebackPct Float    @default(0)
+  clubRebatePct   Float    @default(0)
+  rakebackPct     Float    @default(0)
+  rebatePct       Float    @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  account Account @relation(fields: [accountId], references: [id])
+  club    Club    @relation(fields: [clubId], references: [id])
+}
 
   account Account @relation(fields: [accountId], references: [id])
   club    Club    @relation(fields: [clubId], references: [id])

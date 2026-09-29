@@ -45,13 +45,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Desktop Sidebar */}
       <aside className="sidebar">
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">PF</div>
-          <div>
-            <div className="sidebar-logo-text">Poker Finance</div>
-            <div className="sidebar-logo-sub">Admin Console</div>
-          </div>
-        </div>
+<div className="sidebar-logo">
+  <img src="/logo.png" alt="Poker in Asia" style={{ width: "164px" }} />
+</div>
 
         <nav className="sidebar-nav">
           {nav.map((group) => (

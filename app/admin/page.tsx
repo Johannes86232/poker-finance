@@ -30,7 +30,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetch("/api/dashboard")
       .then(r => r.json())
-      .then(d => { setData(d); setLoading(false) })
+      .then(d => { setData(d ?? { users: [], totalUsd: 0, totalEur: 0, activeClubs: 0, activeAccounts: 0 }); setLoading(false) })
+.catch(() => setLoading(false))
   }, [])
 
   const filtered = data?.users.filter(u =>

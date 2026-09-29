@@ -18,7 +18,8 @@ export async function GET() {
     const activeAccounts = await prisma.account.count({ where: { isActive: true } })
 
     return NextResponse.json({ users, totalUsd, totalEur, activeClubs, activeAccounts })
-  } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch dashboard" }, { status: 500 })
-  }
+} catch (error) {
+    console.error("Dashboard error:", error)
+    return NextResponse.json({ error: String(error) }, { status: 500 })
+}
 }
