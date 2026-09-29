@@ -1,6 +1,4 @@
 ﻿import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 import { PrismaClient } from "@/app/generated/prisma"
 import * as XLSX from "xlsx"
 
@@ -8,11 +6,6 @@ const prisma = new PrismaClient()
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session || (session.user as any).role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const formData = await req.formData()
     const file = formData.get("file") as File
     const weekNum = parseInt(formData.get("weekNum") as string)
@@ -33,9 +26,9 @@ export async function POST(req: NextRequest) {
 
     for (let i = 0; i < allRows.length; i++) {
       const row = allRows[i]
-      const rowStr = row.map((c: any) => String(c ?? "")).join(",").toLowerCase()
+      const rowStr = row.map(c => String(c ?? "")).join(",").toLowerCase()
       if (rowStr.includes("user") && rowStr.includes("settlement")) {
-        headers = row.map((c: any) => String(c ?? "").trim())
+        headers = row.map(c => String(c ?? "").trim())
         dataStartRow = i + 1
         break
       }
@@ -43,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     if (dataStartRow === -1) {
       return NextResponse.json({
-        error: "Header row not found. Expected columns: User, Deal, StartDate, EndDate, Hands, Winnings, Tips, TipBack, T/R, Settlement"
+        error: "Could not find header row. Expected columns: User, Deal, StartDate, EndDate, Nickname, PlayerID, Hands, Winnings, Tips, TipBack, T/R, Settlement"
       }, { status: 400 })
     }
 
@@ -57,6 +50,7 @@ export async function POST(req: NextRequest) {
     const colTips = col("tips")
     const colTipBack = col("tipback")
     const colSettlement = col("settlement")
+    const colHands = col("hands")
 
     if (colUser === -1 || colSettlement === -1) {
       return NextResponse.json({
@@ -71,8 +65,8 @@ export async function POST(req: NextRequest) {
     })
 
     const results = { imported: 0, skipped: 0, errors: [] as string[] }
-    const dataRows = allRows.slice(dataStartRow).filter((row: any[]) =>
-      row[colUser] && String(row[colUser]).trim() !== ""
+    const dataRows = allRows.slice(dataStartRow).filter(row =>
+      row[colUser] && row[colUser] !== null && String(row[colUser]).trim() !== ""
     )
 
     for (const row of dataRows) {
@@ -96,7 +90,7 @@ export async function POST(req: NextRequest) {
         await prisma.weeklyReport.upsert({
           where: { accountId_weekId: { accountId: account.id, weekId: week.id } },
           update: { result: winnings, rake: tips, rakebackAmount: tipBack, netResult: settlement, importedAt: new Date() },
-          create: { accountId: account.id, weekId: week.id, result: winnings, rake: tips, rakebackAmount: tipBack, netResult: settlement, exchangeRate: 1 }
+          create: { accountId: account.id, weekId: week.id, result: winnings, rake: tips, rakebackAmount: tipBack, netResult: settlement, exchangeRate: 1, importedAt: new Date() }
         })
         results.imported++
       } catch (e: any) {
@@ -106,6 +100,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, week: { year, weekNum, id: week.id }, ...results })
+
   } catch (error: any) {
     console.error("Import error:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })
