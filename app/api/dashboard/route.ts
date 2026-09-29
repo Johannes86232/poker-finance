@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+﻿import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
@@ -12,8 +12,8 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     })
 
-    const totalUsd = users.reduce((s, u) => s + (u.balance?.amountUsd ?? 0), 0)
-    const totalEur = users.reduce((s, u) => s + (u.balance?.amountEur ?? 0), 0)
+    const totalUsd = users.reduce((s: number, u: any) => s + (u.balance?.amountUsd ?? 0), 0)
+    const totalEur = users.reduce((s: number, u: any) => s + (u.balance?.amountEur ?? 0), 0)
     const activeClubs = await prisma.club.count({ where: { isActive: true } })
     const activeAccounts = await prisma.account.count({ where: { isActive: true } })
 
