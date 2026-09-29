@@ -244,10 +244,10 @@ const fetchAll = async () => {
                     <div style={{ color: "var(--text-secondary)" }}>{deal.club.name}</div>
                     {deal.club.app && <span className="badge badge-accent" style={{ fontSize: 9 }}>{deal.club.app}</span>}
                   </td>
-                  <td><span className="val-pos">{deal.rakebackPct}%</span></td>
-                  <td><span style={{ color: "var(--amber)" }}>{deal.rebatePct}%</span></td>
+                  <td><span className="val-pos">{(deal.rakebackPct * 100).toFixed(1)}%</span></td>
+                  <td><span style={{ color: "var(--amber)" }}>{(deal.rebatePct * 100).toFixed(1)}%</span></td>
                   <td>
-                    <span className="val-pos">{(deal.rakebackPct + deal.rebatePct).toFixed(1)}%</span>
+                    <span className="val-pos">{((deal.rakebackPct + deal.rebatePct) * 100).toFixed(1)}%</span>
                   </td>
                   <td>
                     <span className={`badge ${deal.isActive ? "badge-active" : "badge-inactive"}`}>

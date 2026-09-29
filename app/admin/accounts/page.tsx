@@ -262,7 +262,7 @@ export default function AccountsPage() {
                         {acc.deals.map((d, i) => (
                           <div key={i} style={{ fontSize: 11 }}>
                             <span style={{ color: "var(--text-secondary)" }}>{d.club.name}</span>
-                            <span className="val-pos" style={{ marginLeft: 6 }}>{d.rakebackPct}%</span>
+                            <span className="val-pos" style={{ marginLeft: 6 }}>{(d.rakebackPct * 100).toFixed(1)}%</span>
                           </div>
                         ))}
                       </div>
