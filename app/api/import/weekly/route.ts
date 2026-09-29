@@ -1,8 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server"
-import { PrismaClient } from "@/app/generated/prisma"
+import { prisma } from "@/lib/prisma"
 import * as XLSX from "xlsx"
-
-const prisma = new PrismaClient()
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,36 +24,28 @@ export async function POST(req: NextRequest) {
 
     for (let i = 0; i < allRows.length; i++) {
       const row = allRows[i]
-      const rowStr = row.map(c => String(c ?? "")).join(",").toLowerCase()
+      const rowStr = row.map((c: any) => String(c ?? "")).join(",").toLowerCase()
       if (rowStr.includes("user") && rowStr.includes("settlement")) {
-        headers = row.map(c => String(c ?? "").trim())
+        headers = row.map((c: any) => String(c ?? "").trim())
         dataStartRow = i + 1
         break
       }
     }
 
     if (dataStartRow === -1) {
-      return NextResponse.json({
-        error: "Could not find header row. Expected columns: User, Deal, StartDate, EndDate, Nickname, PlayerID, Hands, Winnings, Tips, TipBack, T/R, Settlement"
-      }, { status: 400 })
+      return NextResponse.json({ error: "Could not find header row." }, { status: 400 })
     }
 
-    const col = (name: string) => {
-      const idx = headers.findIndex(h => h.toLowerCase().includes(name.toLowerCase()))
-      return idx >= 0 ? idx : -1
-    }
+    const col = (name: string) => headers.findIndex(h => h.toLowerCase().includes(name.toLowerCase()))
 
     const colUser = col("user")
     const colWinnings = col("winnings")
     const colTips = col("tips")
     const colTipBack = col("tipback")
     const colSettlement = col("settlement")
-    const colHands = col("hands")
 
     if (colUser === -1 || colSettlement === -1) {
-      return NextResponse.json({
-        error: `Missing required columns. Found: ${headers.join(", ")}`
-      }, { status: 400 })
+      return NextResponse.json({ error: `Missing required columns. Found: ${headers.join(", ")}` }, { status: 400 })
     }
 
     const week = await prisma.week.upsert({
@@ -65,8 +55,8 @@ export async function POST(req: NextRequest) {
     })
 
     const results = { imported: 0, skipped: 0, errors: [] as string[] }
-    const dataRows = allRows.slice(dataStartRow).filter(row =>
-      row[colUser] && row[colUser] !== null && String(row[colUser]).trim() !== ""
+    const dataRows = allRows.slice(dataStartRow).filter((row: any[]) =>
+      row[colUser] && String(row[colUser]).trim() !== ""
     )
 
     for (const row of dataRows) {
