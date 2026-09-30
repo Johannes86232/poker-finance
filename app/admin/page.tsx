@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react"
 
 type User = {
-  id: number
-  name: string
-  role: string
+  id: number; name: string; role: string
   telegramHandle: string | null
   balance: { amountUsd: number; amountEur: number } | null
   _count: { accounts: number }
@@ -13,10 +11,9 @@ type User = {
 
 type DashboardData = {
   users: User[]
-  totalUsd: number
-  totalEur: number
-  activeClubs: number
-  activeAccounts: number
+  totalUsd: number; totalEur: number
+  activeClubs: number; activeAccounts: number
+  downlineOwes: number; uplineOwes: number; netProfit: number
 }
 
 const fmt = (n: number) =>
@@ -31,7 +28,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetch("/api/dashboard")
       .then(r => r.json())
-      .then(d => { setData(d ?? { users: [], totalUsd: 0, totalEur: 0, activeClubs: 0, activeAccounts: 0 }); setLoading(false) })
+      .then(d => { setData(d ?? null); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
 
@@ -52,28 +49,54 @@ export default function AdminDashboard() {
       <div className="topbar">
         <div className="topbar-title">Dashboard</div>
         <div className="topbar-actions">
-          <span className="badge badge-accent">W39 &middot; 2026</span>
-          <button className="btn"><i className="ti ti-download" /> Export</button>
+          <span className="badge badge-accent">W40 &middot; 2026</span>
         </div>
       </div>
 
       <div className="page-body fade-in">
 
+        {/* P&L Summary */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
+          <div className="card" style={{ textAlign: "center" }}>
+            <div className="kpi-label" style={{ marginBottom: 6 }}>Downline owes us</div>
+            <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-1px", color: "var(--red)" }}>
+              {loading ? "-" : `${fmt(data?.downlineOwes ?? 0)} USD`}
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-tertiary)", marginTop: 4 }}>
+              {debtors} players in debt
+            </div>
+          </div>
+          <div className="card" style={{ textAlign: "center" }}>
+            <div className="kpi-label" style={{ marginBottom: 6 }}>We owe upline</div>
+            <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-1px", color: "var(--amber)" }}>
+              {loading ? "-" : `${fmt(data?.uplineOwes ?? 0)} USD`}
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-tertiary)", marginTop: 4 }}>
+              club rakeback share
+            </div>
+          </div>
+          <div className="card" style={{ textAlign: "center" }}>
+            <div className="kpi-label" style={{ marginBottom: 6 }}>Net Profit</div>
+            <div style={{
+              fontSize: 26, fontWeight: 600, letterSpacing: "-1px",
+              color: (data?.netProfit ?? 0) >= 0 ? "var(--green)" : "var(--red)"
+            }}>
+              {loading ? "-" : `${(data?.netProfit ?? 0) >= 0 ? "+" : "-"}${fmt(data?.netProfit ?? 0)} USD`}
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-tertiary)", marginTop: 4 }}>
+              downline - upline
+            </div>
+          </div>
+        </div>
+
         {/* KPI Grid */}
-        <div className="kpi-grid">
+        <div className="kpi-grid" style={{ marginBottom: 16 }}>
           <div className="kpi-card">
             <div className="kpi-label">Total Exposure</div>
             <div className={`kpi-value ${(data?.totalUsd ?? 0) >= 0 ? "val-pos" : "val-neg"}`}>
               {loading ? "-" : `${(data?.totalUsd ?? 0) >= 0 ? "+" : "-"}${fmt(data?.totalUsd ?? 0)}`}
             </div>
-            <div className="kpi-sub">USD &middot; all users</div>
-          </div>
-          <div className="kpi-card">
-            <div className="kpi-label">EUR Exposure</div>
-            <div className={`kpi-value ${(data?.totalEur ?? 0) >= 0 ? "val-pos" : "val-neg"}`}>
-              {loading ? "-" : `${(data?.totalEur ?? 0) >= 0 ? "+" : "-"}${fmt(data?.totalEur ?? 0)}`}
-            </div>
-            <div className="kpi-sub">EUR &middot; all users</div>
+            <div className="kpi-sub">USD &middot; net all users</div>
           </div>
           <div className="kpi-card">
             <div className="kpi-label">Active Users</div>
@@ -85,34 +108,10 @@ export default function AdminDashboard() {
             <div className="kpi-value val-neutral">{loading ? "-" : data?.activeClubs}</div>
             <div className="kpi-sub">{loading ? "-" : data?.activeAccounts} accounts</div>
           </div>
-        </div>
-
-        {/* Total Balance Hero */}
-        <div className="card" style={{ textAlign: "center", marginBottom: 16 }}>
-          <div className="kpi-label" style={{ marginBottom: 12 }}>Total Balance (All Users)</div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24 }}>
-            <div>
-              <div style={{
-                fontSize: 32, fontWeight: 600, letterSpacing: "-1.5px",
-                color: (data?.totalUsd ?? 0) >= 0 ? "var(--green)" : "var(--red)"
-              }}>
-                {loading ? "-" : `${(data?.totalUsd ?? 0) >= 0 ? "+" : "-"}${fmt(data?.totalUsd ?? 0)} USD`}
-              </div>
-            </div>
-            {(data?.totalEur ?? 0) !== 0 && (
-              <>
-                <div style={{ color: "var(--text-tertiary)", fontSize: 12 }}>OR</div>
-                <div style={{
-                  fontSize: 32, fontWeight: 600, letterSpacing: "-1.5px",
-                  color: (data?.totalEur ?? 0) >= 0 ? "var(--green)" : "var(--red)"
-                }}>
-                  {`${(data?.totalEur ?? 0) >= 0 ? "+" : "-"}${fmt(data?.totalEur ?? 0)} EUR`}
-                </div>
-              </>
-            )}
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 8 }}>
-            {(data?.totalUsd ?? 0) < 0 ? "Players owe us" : "We owe players"}
+          <div className="kpi-card">
+            <div className="kpi-label">EUR Exposure</div>
+            <div className="kpi-value val-neutral">-</div>
+            <div className="kpi-sub">not tracked yet</div>
           </div>
         </div>
 
@@ -131,23 +130,19 @@ export default function AdminDashboard() {
               <tr>
                 <th>User</th>
                 <th>Role</th>
-                <th
-                  onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
-                  style={{ cursor: "pointer", userSelect: "none" }}
-                >
+                <th onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+                  style={{ cursor: "pointer", userSelect: "none" }}>
                   Balance USD {sortDir === "asc" ? "↑" : "↓"}
                 </th>
-                <th>Balance EUR</th>
                 <th>Accounts</th>
                 <th>Open</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>Loading...</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>Loading...</td></tr>
               ) : sorted.map(u => {
                 const usd = u.balance?.amountUsd ?? 0
-                const eur = u.balance?.amountEur ?? 0
                 return (
                   <tr key={u.id}>
                     <td>
@@ -169,15 +164,10 @@ export default function AdminDashboard() {
                     <td className={usd === 0 ? "val-muted" : usd > 0 ? "val-pos" : "val-neg"}>
                       {usd === 0 ? "-" : `${usd > 0 ? "+" : "-"}${fmt(usd)}`}
                     </td>
-                    <td className={eur === 0 ? "val-muted" : eur > 0 ? "val-pos" : "val-neg"}>
-                      {eur === 0 ? "-" : `${eur > 0 ? "+" : "-"}${fmt(eur)}`}
-                    </td>
                     <td style={{ color: "var(--text-secondary)" }}>{u._count.accounts}</td>
                     <td>
                       <a href={`/ledger/${u.id}`}>
-                        <button className="btn btn-accent" style={{ fontSize: 10, padding: "3px 10px" }}>
-                          View
-                        </button>
+                        <button className="btn btn-accent" style={{ fontSize: 10, padding: "3px 10px" }}>View</button>
                       </a>
                     </td>
                   </tr>
