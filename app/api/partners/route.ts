@@ -42,7 +42,6 @@ export async function GET() {
     return {
       id: partner.id,
       name: partner.name,
-      email: partner.email,
       result: totalResult,
       rake: totalRake,
       balance,
