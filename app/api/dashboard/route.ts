@@ -10,7 +10,11 @@ export async function GET() {
           where: { isActive: true },
           include: {
             weeklyReports: true,
-            deals: { where: { isActive: true }, take: 1 },
+            deals: {
+              where: { isActive: true },
+              take: 1,
+              include: { club: true },
+            },
           }
         },
         transactions: true,
@@ -24,7 +28,7 @@ export async function GET() {
     const usersWithBalance = users.map((u: any) => {
       const weeklyTotal = u.accounts.reduce((sum: number, acc: any) => {
         const deal = acc.deals?.[0]
-        const clubRbPct = deal?.clubRakebackPct ?? 0
+        const clubRbPct = deal?.club?.partnerRakebackPct ?? 0
         acc.weeklyReports.forEach((r: any) => {
           uplineOwes += (r.rake ?? 0) * clubRbPct
         })
@@ -42,7 +46,6 @@ export async function GET() {
 
     const totalUsd = usersWithBalance.reduce((s: number, u: any) => s + u.balance.amountUsd, 0)
 
-    // Sum of negative individual balances (players who owe us)
     const downlineOwes = usersWithBalance.reduce((s: number, u: any) => {
       const bal = u.balance.amountUsd
       return s + (bal < 0 ? Math.abs(bal) : 0)

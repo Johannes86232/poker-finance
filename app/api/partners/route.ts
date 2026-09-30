@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
@@ -6,55 +6,46 @@ export async function GET() {
     orderBy: { name: "asc" },
     include: {
       clubs: {
-        where: { isActive: true },
         include: {
           deals: {
-            where: { isActive: true },
             include: {
-              account: { include: { weeklyReports: true } }
-            }
-          }
-        }
-      }
-    }
+              weeklyReports: true,
+            },
+          },
+        },
+      },
+    },
   })
 
-  const result = partners.map(p => {
+  const result = partners.map((partner) => {
     let totalResult = 0
     let totalRake = 0
-    let partnerBalance = 0
+    let balance = 0
 
-    for (const club of p.clubs) {
+    for (const club of partner.clubs) {
+      const pct = club.partnerRakebackPct ?? 0
       for (const deal of club.deals) {
-        for (const r of deal.account.weeklyReports) {
-          totalResult += r.result
-          totalRake += r.rake
-          // Partner balance = result + rake * clubRakebackPct (what we owe/get from partner)
-          partnerBalance += r.result + r.rake * deal.clubRakebackPct
+        for (const report of deal.weeklyReports) {
+          const r = report.result ?? 0
+          const k = report.rake ?? 0
+          totalResult += r
+          totalRake += k
+          balance += r + k * pct
         }
       }
     }
 
     return {
-      id: p.id,
-      name: p.name,
-      telegramHandle: p.telegramHandle,
-      notes: p.notes,
-      isActive: p.isActive,
-      clubCount: p.clubs.length,
-      totalResult,
-      totalRake,
-      partnerBalance, // negative = we owe partner, positive = partner owes us
+      id: partner.id,
+      name: partner.name,
+      email: partner.email,
+      result: totalResult,
+      rake: totalRake,
+      balance,
     }
   })
 
-  return NextResponse.json(result)
-}
+  const totalOwed = result.reduce((sum, p) => sum + (p.balance < 0 ? p.balance : 0), 0)
 
-export async function POST(req: NextRequest) {
-  const body = await req.json()
-  const partner = await prisma.partner.create({
-    data: { name: body.name, telegramHandle: body.telegramHandle || null, notes: body.notes || null }
-  })
-  return NextResponse.json(partner)
+  return NextResponse.json({ partners: result, totalOwed: Math.abs(totalOwed) })
 }
