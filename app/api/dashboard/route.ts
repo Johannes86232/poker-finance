@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
@@ -6,20 +6,43 @@ export async function GET() {
     const users = await prisma.user.findMany({
       where: { isActive: true },
       include: {
-        balance: true,
+        accounts: {
+          where: { isActive: true },
+          include: {
+            weeklyReports: true
+          }
+        },
+        transactions: true,
         _count: { select: { accounts: true } },
       },
       orderBy: { createdAt: "asc" },
     })
 
-    const totalUsd = users.reduce((s: number, u: any) => s + (u.balance?.amountUsd ?? 0), 0)
-    const totalEur = users.reduce((s: number, u: any) => s + (u.balance?.amountEur ?? 0), 0)
+    const usersWithBalance = users.map((u: any) => {
+      const weeklyTotal = u.accounts.reduce((sum: number, acc: any) =>
+        sum + acc.weeklyReports.reduce((s: number, r: any) => s + (r.netResult ?? 0), 0), 0)
+
+      const txTotal = u.transactions.reduce((sum: number, tx: any) => {
+        if (tx.direction === "I_PAY_USER") return sum - tx.amount
+        if (tx.direction === "USER_PAYS_ME") return sum + tx.amount
+        return sum
+      }, 0)
+
+      const balanceUsd = weeklyTotal + txTotal
+
+      return {
+        ...u,
+        balance: { amountUsd: balanceUsd, amountEur: 0 }
+      }
+    })
+
+    const totalUsd = usersWithBalance.reduce((s: number, u: any) => s + u.balance.amountUsd, 0)
     const activeClubs = await prisma.club.count({ where: { isActive: true } })
     const activeAccounts = await prisma.account.count({ where: { isActive: true } })
 
-    return NextResponse.json({ users, totalUsd, totalEur, activeClubs, activeAccounts })
-} catch (error) {
+    return NextResponse.json({ users: usersWithBalance, totalUsd, totalEur: 0, activeClubs, activeAccounts })
+  } catch (error) {
     console.error("Dashboard error:", error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
-}
+  }
 }
