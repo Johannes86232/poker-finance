@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
       const rake = colRake >= 0 ? parseFloat(String(row[colRake] ?? "0").replace(/[^0-9.-]/g, "")) || 0 : 0
       const xeRate = colXeRate >= 0 ? parseFloat(String(row[colXeRate] ?? "1").replace(/[^0-9.-]/g, "")) || 1 : 1
 
-      const resultUsd = resultRaw / xeRate
-      const rakeUsd = rake / xeRate
+      const resultUsd = resultRaw * xeRate
+      const rakeUsd = rake * xeRate
 
       let account = null
       if (piaId) {
@@ -127,3 +127,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
