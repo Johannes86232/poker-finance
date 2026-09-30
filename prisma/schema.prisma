@@ -40,6 +40,17 @@ enum CalcType {
   ADJUSTED
 }
 
+model Partner {
+  id             Int      @id @default(autoincrement())
+  name           String   @unique
+  telegramHandle String?
+  notes          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  clubs Club[]
+}
+
 model User {
   id             Int      @id @default(autoincrement())
   telegramId     String?  @unique
@@ -66,8 +77,10 @@ model Club {
   logoUrl   String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+  partnerId Int?
 
-  deals     Deal[]
+  partner Partner? @relation(fields: [partnerId], references: [id])
+  deals   Deal[]
 }
 
 model Account {

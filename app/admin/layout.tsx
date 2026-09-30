@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -12,6 +12,7 @@ const nav = [
       { label: "Clubs", href: "/admin/clubs", icon: "ti-building" },
       { label: "Accounts", href: "/admin/accounts", icon: "ti-id-badge" },
       { label: "Deals", href: "/admin/deals", icon: "ti-file-invoice" },
+      { label: "Partners", href: "/admin/partners", icon: "ti-handshake" },
     ],
   },
   {
@@ -97,3 +98,4 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   )
 }
+
