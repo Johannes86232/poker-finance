@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 
 interface Partner {
   id: number
@@ -26,15 +26,14 @@ export default function ClubsPage() {
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [editClub, setEditClub] = useState<Club | null>(null)
+  const formRef = useRef<HTMLDivElement>(null)
 
   const [form, setForm] = useState({
     name: "", app: "", currency: "USD", calcType: "STANDARD",
     chipValue: "1", partnerId: "",
   })
 
-  useEffect(() => {
-    fetchAll()
-  }, [])
+  useEffect(() => { fetchAll() }, [])
 
   async function fetchAll() {
     const [c, p] = await Promise.all([
@@ -48,8 +47,9 @@ export default function ClubsPage() {
 
   function openCreate() {
     setForm({ name: "", app: "", currency: "USD", calcType: "STANDARD", chipValue: "1", partnerId: "" })
-    setShowCreate(true)
     setEditClub(null)
+    setShowCreate(true)
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50)
   }
 
   function openEdit(club: Club) {
@@ -61,8 +61,9 @@ export default function ClubsPage() {
       chipValue: String(club.chipValue),
       partnerId: club.partnerId ? String(club.partnerId) : "",
     })
-    setEditClub(club)
     setShowCreate(false)
+    setEditClub(club)
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50)
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -79,13 +80,8 @@ export default function ClubsPage() {
         partnerId: form.partnerId ? parseInt(form.partnerId) : null,
       }),
     })
-    if (res.ok) {
-      setShowCreate(false)
-      fetchAll()
-    } else {
-      const err = await res.json()
-      alert("Error: " + (err.error || "unknown"))
-    }
+    if (res.ok) { setShowCreate(false); fetchAll() }
+    else { const err = await res.json(); alert("Error: " + (err.error || "unknown")) }
   }
 
   async function handleEdit(e: React.FormEvent) {
@@ -104,13 +100,8 @@ export default function ClubsPage() {
         partnerId: form.partnerId ? parseInt(form.partnerId) : null,
       }),
     })
-    if (res.ok) {
-      setEditClub(null)
-      fetchAll()
-    } else {
-      const err = await res.json()
-      alert("Error: " + (err.error || "unknown"))
-    }
+    if (res.ok) { setEditClub(null); fetchAll() }
+    else { const err = await res.json(); alert("Error: " + (err.error || "unknown")) }
   }
 
   async function toggleActive(club: Club) {
@@ -130,7 +121,7 @@ export default function ClubsPage() {
         onChange={e => setForm(f => ({ ...f, partnerId: e.target.value }))}
         className="form-input"
       >
-        <option value="">-- no partner --</option>
+        <option value="">-- kein Partner --</option>
         {partners.map(p => (
           <option key={p.id} value={String(p.id)}>{p.name}</option>
         ))}
@@ -138,105 +129,78 @@ export default function ClubsPage() {
     </div>
   )
 
+  const formFields = (
+    <div className="form-grid">
+      <div className="form-group">
+        <label>Name *</label>
+        <input className="form-input" required value={form.name}
+          onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+      </div>
+      <div className="form-group">
+        <label>App</label>
+        <input className="form-input" value={form.app}
+          onChange={e => setForm(f => ({ ...f, app: e.target.value }))} />
+      </div>
+      <div className="form-group">
+        <label>Currency</label>
+        <select className="form-input" value={form.currency}
+          onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}>
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+        </select>
+      </div>
+      <div className="form-group">
+        <label>Calc Type</label>
+        <select className="form-input" value={form.calcType}
+          onChange={e => setForm(f => ({ ...f, calcType: e.target.value }))}>
+          <option value="STANDARD">Standard</option>
+          <option value="ADJUSTED">Adjusted</option>
+        </select>
+      </div>
+      <div className="form-group">
+        <label>Chip Value</label>
+        <input className="form-input" type="number" step="0.01" value={form.chipValue}
+          onChange={e => setForm(f => ({ ...f, chipValue: e.target.value }))} />
+      </div>
+      {partnerField}
+    </div>
+  )
+
   return (
     <div className="page-layout">
-            <div className="page-content">
+      <div className="page-content">
         <div className="topbar">
           <h1 className="topbar-title">Clubs</h1>
           <button className="btn-primary" onClick={openCreate}>+ New Club</button>
         </div>
 
-        {showCreate && (
-          <div className="card" style={{ marginBottom: 24 }}>
-            <h2 style={{ marginBottom: 16 }}>Create Club</h2>
-            <form onSubmit={handleCreate}>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Name *</label>
-                  <input className="form-input" required value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+        <div ref={formRef}>
+          {showCreate && (
+            <div className="card" style={{ marginBottom: 24 }}>
+              <h2 style={{ marginBottom: 16 }}>Club erstellen</h2>
+              <form onSubmit={handleCreate}>
+                {formFields}
+                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                  <button type="submit" className="btn-primary">Erstellen</button>
+                  <button type="button" className="btn-secondary" onClick={() => setShowCreate(false)}>Abbrechen</button>
                 </div>
-                <div className="form-group">
-                  <label>App</label>
-                  <input className="form-input" value={form.app}
-                    onChange={e => setForm(f => ({ ...f, app: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label>Currency</label>
-                  <select className="form-input" value={form.currency}
-                    onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Calc Type</label>
-                  <select className="form-input" value={form.calcType}
-                    onChange={e => setForm(f => ({ ...f, calcType: e.target.value }))}>
-                    <option value="STANDARD">Standard</option>
-                    <option value="ADJUSTED">Adjusted</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Chip Value</label>
-                  <input className="form-input" type="number" step="0.01" value={form.chipValue}
-                    onChange={e => setForm(f => ({ ...f, chipValue: e.target.value }))} />
-                </div>
-                {partnerField}
-              </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                <button type="submit" className="btn-primary">Create</button>
-                <button type="button" className="btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        )}
+              </form>
+            </div>
+          )}
 
-        {editClub && (
-          <div className="card" style={{ marginBottom: 24 }}>
-            <h2 style={{ marginBottom: 16 }}>Edit: {editClub.name}</h2>
-            <form onSubmit={handleEdit}>
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>Name *</label>
-                  <input className="form-input" required value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          {editClub && (
+            <div className="card" style={{ marginBottom: 24 }}>
+              <h2 style={{ marginBottom: 16 }}>Bearbeiten: {editClub.name}</h2>
+              <form onSubmit={handleEdit}>
+                {formFields}
+                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                  <button type="submit" className="btn-primary">Speichern</button>
+                  <button type="button" className="btn-secondary" onClick={() => setEditClub(null)}>Abbrechen</button>
                 </div>
-                <div className="form-group">
-                  <label>App</label>
-                  <input className="form-input" value={form.app}
-                    onChange={e => setForm(f => ({ ...f, app: e.target.value }))} />
-                </div>
-                <div className="form-group">
-                  <label>Currency</label>
-                  <select className="form-input" value={form.currency}
-                    onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Calc Type</label>
-                  <select className="form-input" value={form.calcType}
-                    onChange={e => setForm(f => ({ ...f, calcType: e.target.value }))}>
-                    <option value="STANDARD">Standard</option>
-                    <option value="ADJUSTED">Adjusted</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Chip Value</label>
-                  <input className="form-input" type="number" step="0.01" value={form.chipValue}
-                    onChange={e => setForm(f => ({ ...f, chipValue: e.target.value }))} />
-                </div>
-                {partnerField}
-              </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                <button type="submit" className="btn-primary">Save</button>
-                <button type="button" className="btn-secondary" onClick={() => setEditClub(null)}>Cancel</button>
-              </div>
-            </form>
-          </div>
-        )}
+              </form>
+            </div>
+          )}
+        </div>
 
         {loading ? (
           <p>Loading...</p>
@@ -264,15 +228,15 @@ export default function ClubsPage() {
                     <td>{club._count.deals}</td>
                     <td>
                       <span className={`badge ${club.isActive ? "badge-green" : "badge-gray"}`}>
-                        {club.isActive ? "Active" : "Inactive"}
+                        {club.isActive ? "Aktiv" : "Inaktiv"}
                       </span>
                     </td>
                     <td>
-                      <button className="btn-icon" onClick={() => openEdit(club)} title="Edit">
+                      <button className="btn-icon" onClick={() => openEdit(club)} title="Bearbeiten">
                         <i className="ti ti-pencil" />
                       </button>
                       <button className="btn-icon" onClick={() => toggleActive(club)}
-                        title={club.isActive ? "Deactivate" : "Activate"}>
+                        title={club.isActive ? "Deaktivieren" : "Aktivieren"}>
                         <i className={`ti ${club.isActive ? "ti-toggle-right" : "ti-toggle-left"}`} />
                       </button>
                     </td>
