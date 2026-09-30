@@ -73,7 +73,9 @@ model Club {
   app       String?
   currency  String   @default("USD")
   calcType  CalcType @default(STANDARD)
-  chipValue Float    @default(1)
+  chipValue           Float    @default(1)
+  partnerRakebackPct  Float    @default(0)
+  partnerRebatePct    Float    @default(0)
   logoUrl   String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())

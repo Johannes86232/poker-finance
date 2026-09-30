@@ -19,7 +19,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, app, currency, calcType, chipValue, partnerId } = await req.json()
+    const { name, app, currency, calcType, chipValue, partnerId, partnerRakebackPct, partnerRebatePct } = await req.json()
     const club = await prisma.club.create({
       data: {
         name,
@@ -28,6 +28,8 @@ export async function POST(req: Request) {
         calcType: calcType || "STANDARD",
         chipValue: parseFloat(chipValue) || 1,
         partnerId: partnerId ? Number(partnerId) : null,
+        partnerRakebackPct: partnerRakebackPct ? parseFloat(partnerRakebackPct) / 100 : 0,
+        partnerRebatePct: partnerRebatePct ? parseFloat(partnerRebatePct) / 100 : 0,
       },
       include: {
         partner: { select: { id: true, name: true } },
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { id, name, app, currency, calcType, chipValue, partnerId, isActive } = await req.json()
+    const { id, name, app, currency, calcType, chipValue, partnerId, isActive, partnerRakebackPct, partnerRebatePct } = await req.json()
     const club = await prisma.club.update({
       where: { id: Number(id) },
       data: {
@@ -55,6 +57,8 @@ export async function PATCH(req: Request) {
         ...(chipValue !== undefined && { chipValue: parseFloat(chipValue) }),
         ...(isActive !== undefined && { isActive }),
         ...(partnerId !== undefined && { partnerId: partnerId ? Number(partnerId) : null }),
+        ...(partnerRakebackPct !== undefined && { partnerRakebackPct: parseFloat(partnerRakebackPct) / 100 }),
+        ...(partnerRebatePct !== undefined && { partnerRebatePct: parseFloat(partnerRebatePct) / 100 }),
       },
       include: {
         partner: { select: { id: true, name: true } },
