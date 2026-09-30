@@ -90,7 +90,7 @@ export default function ImportPage() {
                 <div style={{ fontWeight: 500 }}>{selectedClub.partner?.name || "—"}</div>
               </div>
               <div>
-                <div style={{ color: "var(--text-tertiary)", marginBottom: "3px" }}>Partner RB %</div>
+                <div style={{ color: "var(--text-tertiary)", marginBottom: "3px" }}>Rakeback Deal</div>
                 <div style={{ fontWeight: 600, color: selectedClub.partnerRakebackPct > 0 ? "var(--amber)" : "var(--text-secondary)" }}>
                   {selectedClub.partnerRakebackPct > 0 ? `${Math.round(selectedClub.partnerRakebackPct * 100)}%` : "—"}
                 </div>
@@ -166,4 +166,5 @@ export default function ImportPage() {
     </div>
   )
 }
+
 
