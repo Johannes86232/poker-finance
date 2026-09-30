@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+﻿import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import * as XLSX from "xlsx"
 
@@ -8,9 +8,18 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File
     const weekNum = parseInt(formData.get("weekNum") as string)
     const year = parseInt(formData.get("year") as string)
+    const clubId = parseInt(formData.get("clubId") as string)
 
     if (!file || !weekNum || !year) {
       return NextResponse.json({ error: "Missing file, weekNum or year" }, { status: 400 })
+    }
+    if (!clubId) {
+      return NextResponse.json({ error: "Missing clubId" }, { status: 400 })
+    }
+
+    const club = await prisma.club.findUnique({ where: { id: clubId } })
+    if (!club) {
+      return NextResponse.json({ error: "Club not found" }, { status: 404 })
     }
 
     const buffer = await file.arrayBuffer()
@@ -19,7 +28,6 @@ export async function POST(req: NextRequest) {
     const worksheet = workbook.Sheets[sheetName]
     const allRows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null })
 
-    // Find header row
     let dataStartRow = -1
     let headers: string[] = []
 
@@ -68,18 +76,15 @@ export async function POST(req: NextRequest) {
       const resultUsd = resultRaw / xeRate
       const rakeUsd = rake / xeRate
 
-      // Match by accountId first, then fall back to nickname
       let account = null
       if (piaId) {
         account = await prisma.account.findFirst({
           where: { accountId: piaId, isActive: true },
-          include: { deals: { where: { isActive: true }, take: 1 } }
         })
       }
       if (!account && screenName) {
         account = await prisma.account.findFirst({
           where: { nickname: { equals: screenName, mode: "insensitive" }, isActive: true },
-          include: { deals: { where: { isActive: true }, take: 1 } }
         })
       }
 
@@ -89,15 +94,24 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      const deal = account.deals[0]
-      const rakebackPct = deal ? deal.rakebackPct : 0
-      const rakebackAmount = rakeUsd * rakebackPct
+      // Ensure account has a Deal linked to this club (create if missing)
+      const existingDeal = await prisma.deal.findFirst({
+        where: { accountId: account.id, clubId: clubId, isActive: true }
+      })
+      if (!existingDeal) {
+        await prisma.deal.create({
+          data: { accountId: account.id, clubId: clubId, isActive: true }
+        })
+      }
+
+      const rakebackAmount = 0
+      const netResult = resultUsd + rakebackAmount
 
       try {
         await prisma.weeklyReport.upsert({
           where: { accountId_weekId: { accountId: account.id, weekId: week.id } },
-          update: { result: resultUsd, rake: rakeUsd, rakebackAmount, netResult: resultUsd + rakebackAmount, exchangeRate: xeRate, importedAt: new Date() },
-          create: { accountId: account.id, weekId: week.id, result: resultUsd, rake: rakeUsd, rakebackAmount, netResult: resultUsd + rakebackAmount, exchangeRate: xeRate, importedAt: new Date() }
+          update: { result: resultUsd, rake: rakeUsd, rakebackAmount, netResult, exchangeRate: xeRate, importedAt: new Date() },
+          create: { accountId: account.id, weekId: week.id, result: resultUsd, rake: rakeUsd, rakebackAmount, netResult, exchangeRate: xeRate, importedAt: new Date() }
         })
         results.imported++
       } catch (e: any) {
