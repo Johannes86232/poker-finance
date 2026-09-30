@@ -26,19 +26,25 @@ export default function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
 
   useEffect(() => {
     fetch("/api/dashboard")
       .then(r => r.json())
       .then(d => { setData(d ?? { users: [], totalUsd: 0, totalEur: 0, activeClubs: 0, activeAccounts: 0 }); setLoading(false) })
-.catch(() => setLoading(false))
+      .catch(() => setLoading(false))
   }, [])
 
   const filtered = data?.users.filter(u =>
     u.name.toLowerCase().includes(search.toLowerCase())
   ) ?? []
 
-  // Players who owe us (negative balance)
+  const sorted = [...filtered].sort((a, b) => {
+    const aUsd = a.balance?.amountUsd ?? 0
+    const bUsd = b.balance?.amountUsd ?? 0
+    return sortDir === "asc" ? aUsd - bUsd : bUsd - aUsd
+  })
+
   const debtors = data?.users.filter(u => (u.balance?.amountUsd ?? 0) < 0).length ?? 0
 
   return (
@@ -46,7 +52,7 @@ export default function AdminDashboard() {
       <div className="topbar">
         <div className="topbar-title">Dashboard</div>
         <div className="topbar-actions">
-          <span className="badge badge-accent">W8 · 2026</span>
+          <span className="badge badge-accent">W39 &middot; 2026</span>
           <button className="btn"><i className="ti ti-download" /> Export</button>
         </div>
       </div>
@@ -58,26 +64,26 @@ export default function AdminDashboard() {
           <div className="kpi-card">
             <div className="kpi-label">Total Exposure</div>
             <div className={`kpi-value ${(data?.totalUsd ?? 0) >= 0 ? "val-pos" : "val-neg"}`}>
-              {loading ? "—" : `${(data?.totalUsd ?? 0) >= 0 ? "+" : "−"}${fmt(data?.totalUsd ?? 0)}`}
+              {loading ? "-" : `${(data?.totalUsd ?? 0) >= 0 ? "+" : "-"}${fmt(data?.totalUsd ?? 0)}`}
             </div>
-            <div className="kpi-sub">USD · all users</div>
+            <div className="kpi-sub">USD &middot; all users</div>
           </div>
           <div className="kpi-card">
             <div className="kpi-label">EUR Exposure</div>
             <div className={`kpi-value ${(data?.totalEur ?? 0) >= 0 ? "val-pos" : "val-neg"}`}>
-              {loading ? "—" : `${(data?.totalEur ?? 0) >= 0 ? "+" : "−"}${fmt(data?.totalEur ?? 0)}`}
+              {loading ? "-" : `${(data?.totalEur ?? 0) >= 0 ? "+" : "-"}${fmt(data?.totalEur ?? 0)}`}
             </div>
-            <div className="kpi-sub">EUR · all users</div>
+            <div className="kpi-sub">EUR &middot; all users</div>
           </div>
           <div className="kpi-card">
             <div className="kpi-label">Active Users</div>
-            <div className="kpi-value val-neutral">{loading ? "—" : data?.users.length}</div>
+            <div className="kpi-value val-neutral">{loading ? "-" : data?.users.length}</div>
             <div className="kpi-sub">{debtors} owe us</div>
           </div>
           <div className="kpi-card">
             <div className="kpi-label">Active Clubs</div>
-            <div className="kpi-value val-neutral">{loading ? "—" : data?.activeClubs}</div>
-            <div className="kpi-sub">{loading ? "—" : data?.activeAccounts} accounts</div>
+            <div className="kpi-value val-neutral">{loading ? "-" : data?.activeClubs}</div>
+            <div className="kpi-sub">{loading ? "-" : data?.activeAccounts} accounts</div>
           </div>
         </div>
 
@@ -90,7 +96,7 @@ export default function AdminDashboard() {
                 fontSize: 32, fontWeight: 600, letterSpacing: "-1.5px",
                 color: (data?.totalUsd ?? 0) >= 0 ? "var(--green)" : "var(--red)"
               }}>
-                {loading ? "—" : `${(data?.totalUsd ?? 0) >= 0 ? "+" : "−"}${fmt(data?.totalUsd ?? 0)} USD`}
+                {loading ? "-" : `${(data?.totalUsd ?? 0) >= 0 ? "+" : "-"}${fmt(data?.totalUsd ?? 0)} USD`}
               </div>
             </div>
             {(data?.totalEur ?? 0) !== 0 && (
@@ -100,7 +106,7 @@ export default function AdminDashboard() {
                   fontSize: 32, fontWeight: 600, letterSpacing: "-1.5px",
                   color: (data?.totalEur ?? 0) >= 0 ? "var(--green)" : "var(--red)"
                 }}>
-                  {`${(data?.totalEur ?? 0) >= 0 ? "+" : "−"}${fmt(data?.totalEur ?? 0)} EUR`}
+                  {`${(data?.totalEur ?? 0) >= 0 ? "+" : "-"}${fmt(data?.totalEur ?? 0)} EUR`}
                 </div>
               </>
             )}
@@ -125,7 +131,12 @@ export default function AdminDashboard() {
               <tr>
                 <th>User</th>
                 <th>Role</th>
-                <th>Balance USD</th>
+                <th
+                  onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
+                  style={{ cursor: "pointer", userSelect: "none" }}
+                >
+                  Balance USD {sortDir === "asc" ? "↑" : "↓"}
+                </th>
                 <th>Balance EUR</th>
                 <th>Accounts</th>
                 <th>Open</th>
@@ -134,7 +145,7 @@ export default function AdminDashboard() {
             <tbody>
               {loading ? (
                 <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>Loading...</td></tr>
-              ) : filtered.map(u => {
+              ) : sorted.map(u => {
                 const usd = u.balance?.amountUsd ?? 0
                 const eur = u.balance?.amountEur ?? 0
                 return (
@@ -156,19 +167,19 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className={usd === 0 ? "val-muted" : usd > 0 ? "val-pos" : "val-neg"}>
-                      {usd === 0 ? "—" : `${usd > 0 ? "+" : "−"}${fmt(usd)}`}
+                      {usd === 0 ? "-" : `${usd > 0 ? "+" : "-"}${fmt(usd)}`}
                     </td>
                     <td className={eur === 0 ? "val-muted" : eur > 0 ? "val-pos" : "val-neg"}>
-                      {eur === 0 ? "—" : `${eur > 0 ? "+" : "−"}${fmt(eur)}`}
+                      {eur === 0 ? "-" : `${eur > 0 ? "+" : "-"}${fmt(eur)}`}
                     </td>
                     <td style={{ color: "var(--text-secondary)" }}>{u._count.accounts}</td>
-<td>
-  <a href={`/ledger/${u.id}`}>
-    <button className="btn btn-accent" style={{ fontSize: 10, padding: "3px 10px" }}>
-      View
-    </button>
-  </a>
-</td>
+                    <td>
+                      <a href={`/ledger/${u.id}`}>
+                        <button className="btn btn-accent" style={{ fontSize: 10, padding: "3px 10px" }}>
+                          View
+                        </button>
+                      </a>
+                    </td>
                   </tr>
                 )
               })}
