@@ -41,8 +41,13 @@ export async function GET() {
     })
 
     const totalUsd = usersWithBalance.reduce((s: number, u: any) => s + u.balance.amountUsd, 0)
-    // totalUsd < 0 means players owe us (downline exposure)
-    const downlineOwes = totalUsd < 0 ? Math.abs(totalUsd) : 0
+
+    // Sum of negative individual balances (players who owe us)
+    const downlineOwes = usersWithBalance.reduce((s: number, u: any) => {
+      const bal = u.balance.amountUsd
+      return s + (bal < 0 ? Math.abs(bal) : 0)
+    }, 0)
+
     const netProfit = downlineOwes - uplineOwes
 
     const activeClubs = await prisma.club.count({ where: { isActive: true } })

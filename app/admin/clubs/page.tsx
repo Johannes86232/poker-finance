@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Sidebar } from "@/components/Sidebar"
 
 interface Partner {
   id: number
@@ -141,8 +140,7 @@ export default function ClubsPage() {
 
   return (
     <div className="page-layout">
-      <Sidebar />
-      <div className="page-content">
+            <div className="page-content">
         <div className="topbar">
           <h1 className="topbar-title">Clubs</h1>
           <button className="btn-primary" onClick={openCreate}>+ New Club</button>
