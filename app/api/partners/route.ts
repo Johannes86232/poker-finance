@@ -10,9 +10,7 @@ export async function GET() {
           deals: {
             include: {
               account: {
-                include: {
-                  weeklyReports: true,
-                },
+                include: { weeklyReports: true },
               },
             },
           },
@@ -24,7 +22,7 @@ export async function GET() {
   const result = partners.map((partner) => {
     let totalResult = 0
     let totalRake = 0
-    let balance = 0
+    let partnerBalance = 0
 
     for (const club of partner.clubs) {
       const pct = club.partnerRakebackPct ?? 0
@@ -34,7 +32,7 @@ export async function GET() {
           const k = report.rake ?? 0
           totalResult += r
           totalRake += k
-          balance += r + k * pct
+          partnerBalance += r + k * pct
         }
       }
     }
@@ -42,13 +40,24 @@ export async function GET() {
     return {
       id: partner.id,
       name: partner.name,
-      result: totalResult,
-      rake: totalRake,
-      balance,
+      telegramHandle: partner.telegramHandle ?? null,
+      notes: partner.notes ?? null,
+      isActive: partner.isActive ?? true,
+      clubCount: partner.clubs.length,
+      totalResult,
+      totalRake,
+      partnerBalance,
     }
   })
 
-  const totalOwed = result.reduce((sum, p) => sum + (p.balance < 0 ? p.balance : 0), 0)
+  return NextResponse.json(result)
+}
 
-  return NextResponse.json({ partners: result, totalOwed: Math.abs(totalOwed) })
+export async function POST(req: Request) {
+  const { name, telegramHandle, notes } = await req.json()
+  if (!name) return NextResponse.json({ error: "Name required" }, { status: 400 })
+  const partner = await prisma.partner.create({
+    data: { name, telegramHandle: telegramHandle || null, notes: notes || null },
+  })
+  return NextResponse.json(partner)
 }
