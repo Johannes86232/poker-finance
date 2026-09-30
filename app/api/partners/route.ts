@@ -9,7 +9,11 @@ export async function GET() {
         include: {
           deals: {
             include: {
-              weeklyReports: true,
+              account: {
+                include: {
+                  weeklyReports: true,
+                },
+              },
             },
           },
         },
@@ -25,7 +29,7 @@ export async function GET() {
     for (const club of partner.clubs) {
       const pct = club.partnerRakebackPct ?? 0
       for (const deal of club.deals) {
-        for (const report of deal.weeklyReports) {
+        for (const report of deal.account.weeklyReports) {
           const r = report.result ?? 0
           const k = report.rake ?? 0
           totalResult += r
