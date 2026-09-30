@@ -2,22 +2,25 @@
 
 import { useEffect, useState, useRef } from "react"
 
-interface Partner {
-  id: number
-  name: string
+interface Partner { id: number; name: string }
+interface Club {
+  id: number; name: string; app: string | null; currency: string
+  calcType: string; chipValue: number; isActive: boolean
+  partnerId: number | null; partner: Partner | null; _count: { deals: number }
 }
 
-interface Club {
-  id: number
-  name: string
-  app: string | null
-  currency: string
-  calcType: string
-  chipValue: number
-  isActive: boolean
-  partnerId: number | null
-  partner: Partner | null
-  _count: { deals: number }
+const btn: React.CSSProperties = {
+  padding: "8px 18px", borderRadius: 6, border: "none", cursor: "pointer",
+  fontWeight: 600, fontSize: 14
+}
+const btnPrimary: React.CSSProperties = { ...btn, background: "#6366f1", color: "#fff" }
+const btnSecondary: React.CSSProperties = { ...btn, background: "#374151", color: "#e5e7eb" }
+const btnDanger: React.CSSProperties = { ...btn, background: "#dc2626", color: "#fff", padding: "6px 12px" }
+const btnGreen: React.CSSProperties = { ...btn, background: "#16a34a", color: "#fff", padding: "6px 12px" }
+const input: React.CSSProperties = {
+  width: "100%", padding: "8px 12px", borderRadius: 6,
+  border: "1px solid #374151", background: "#1f2937", color: "#f9fafb",
+  fontSize: 14, boxSizing: "border-box"
 }
 
 export default function ClubsPage() {
@@ -28,11 +31,7 @@ export default function ClubsPage() {
   const [editClub, setEditClub] = useState<Club | null>(null)
   const [search, setSearch] = useState("")
   const formRef = useRef<HTMLDivElement>(null)
-
-  const [form, setForm] = useState({
-    name: "", app: "", currency: "USD", calcType: "STANDARD",
-    chipValue: "1", partnerId: "",
-  })
+  const [form, setForm] = useState({ name: "", app: "", currency: "USD", calcType: "STANDARD", chipValue: "1", partnerId: "" })
 
   useEffect(() => { fetchAll() }, [])
 
@@ -54,52 +53,26 @@ export default function ClubsPage() {
   }
 
   function openEdit(club: Club) {
-    setForm({
-      name: club.name,
-      app: club.app || "",
-      currency: club.currency,
-      calcType: club.calcType,
-      chipValue: String(club.chipValue),
-      partnerId: club.partnerId ? String(club.partnerId) : "",
-    })
+    setForm({ name: club.name, app: club.app || "", currency: club.currency, calcType: club.calcType, chipValue: String(club.chipValue), partnerId: club.partnerId ? String(club.partnerId) : "" })
     setShowCreate(false)
     setEditClub(club)
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50)
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
+  async function submitCreate() {
     const res = await fetch("/api/clubs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name,
-        app: form.app || null,
-        currency: form.currency,
-        calcType: form.calcType,
-        chipValue: parseFloat(form.chipValue) || 1,
-        partnerId: form.partnerId ? parseInt(form.partnerId) : null,
-      }),
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: form.name, app: form.app || null, currency: form.currency, calcType: form.calcType, chipValue: parseFloat(form.chipValue) || 1, partnerId: form.partnerId ? parseInt(form.partnerId) : null }),
     })
     if (res.ok) { setShowCreate(false); fetchAll() }
     else { const err = await res.json(); alert("Error: " + (err.error || "unknown")) }
   }
 
-  async function handleEdit(e: React.FormEvent) {
-    e.preventDefault()
+  async function submitEdit() {
     if (!editClub) return
     const res = await fetch("/api/clubs", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: editClub.id,
-        name: form.name,
-        app: form.app || null,
-        currency: form.currency,
-        calcType: form.calcType,
-        chipValue: parseFloat(form.chipValue) || 1,
-        partnerId: form.partnerId ? parseInt(form.partnerId) : null,
-      }),
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: editClub.id, name: form.name, app: form.app || null, currency: form.currency, calcType: form.calcType, chipValue: parseFloat(form.chipValue) || 1, partnerId: form.partnerId ? parseInt(form.partnerId) : null }),
     })
     if (res.ok) { setEditClub(null); fetchAll() }
     else { const err = await res.json(); alert("Error: " + (err.error || "unknown")) }
@@ -107,8 +80,7 @@ export default function ClubsPage() {
 
   async function toggleActive(club: Club) {
     await fetch("/api/clubs", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: club.id, isActive: !club.isActive }),
     })
     fetchAll()
@@ -120,56 +92,40 @@ export default function ClubsPage() {
     (c.partner?.name || "").toLowerCase().includes(search.toLowerCase())
   )
 
-  const partnerField = (
-    <div className="form-group">
-      <label>Partner (Upline)</label>
-      <select
-        value={form.partnerId}
-        onChange={e => setForm(f => ({ ...f, partnerId: e.target.value }))}
-        className="form-input"
-      >
-        <option value="">-- no partner --</option>
-        {partners.map(p => (
-          <option key={p.id} value={String(p.id)}>{p.name}</option>
-        ))}
-      </select>
-    </div>
-  )
-
   const formFields = (
-    <div className="form-grid">
-      <div className="form-group">
-        <label>Name *</label>
-        <input className="form-input" required value={form.name}
-          onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-      </div>
-      <div className="form-group">
-        <label>App</label>
-        <input className="form-input" value={form.app}
-          onChange={e => setForm(f => ({ ...f, app: e.target.value }))} />
-      </div>
-      <div className="form-group">
-        <label>Currency</label>
-        <select className="form-input" value={form.currency}
-          onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      {[
+        { label: "Name *", key: "name", type: "text" },
+        { label: "App", key: "app", type: "text" },
+        { label: "Chip Value", key: "chipValue", type: "number" },
+      ].map(({ label, key, type }) => (
+        <div key={key}>
+          <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#9ca3af" }}>{label}</label>
+          <input style={input} type={type} value={form[key as keyof typeof form]}
+            onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
+        </div>
+      ))}
+      <div>
+        <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#9ca3af" }}>Currency</label>
+        <select style={input} value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}>
           <option value="USD">USD</option>
           <option value="EUR">EUR</option>
         </select>
       </div>
-      <div className="form-group">
-        <label>Calc Type</label>
-        <select className="form-input" value={form.calcType}
-          onChange={e => setForm(f => ({ ...f, calcType: e.target.value }))}>
+      <div>
+        <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#9ca3af" }}>Calc Type</label>
+        <select style={input} value={form.calcType} onChange={e => setForm(f => ({ ...f, calcType: e.target.value }))}>
           <option value="STANDARD">Standard</option>
           <option value="ADJUSTED">Adjusted</option>
         </select>
       </div>
-      <div className="form-group">
-        <label>Chip Value</label>
-        <input className="form-input" type="number" step="0.01" value={form.chipValue}
-          onChange={e => setForm(f => ({ ...f, chipValue: e.target.value }))} />
+      <div>
+        <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#9ca3af" }}>Partner (Upline)</label>
+        <select style={input} value={form.partnerId} onChange={e => setForm(f => ({ ...f, partnerId: e.target.value }))}>
+          <option value="">-- no partner --</option>
+          {partners.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+        </select>
       </div>
-      {partnerField}
     </div>
   )
 
@@ -178,61 +134,38 @@ export default function ClubsPage() {
       <div className="page-content">
         <div className="topbar">
           <h1 className="topbar-title">Clubs</h1>
-          <button className="btn-primary" onClick={openCreate}>+ New Club</button>
+          <button style={btnPrimary} onClick={openCreate}>+ New Club</button>
         </div>
 
         <div ref={formRef}>
-          {showCreate && (
+          {(showCreate || editClub) && (
             <div className="card" style={{ marginBottom: 24 }}>
-              <h2 style={{ marginBottom: 16 }}>Create Club</h2>
-              <form onSubmit={handleCreate} noValidate>
-                {formFields}
-                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                  <button type="submit" className="btn-primary">Create</button>
-                  <button type="button" className="btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {editClub && (
-            <div className="card" style={{ marginBottom: 24 }}>
-              <h2 style={{ marginBottom: 16 }}>Edit: {editClub.name}</h2>
-              <form onSubmit={handleEdit} noValidate>
-                {formFields}
-                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                  <button type="submit" className="btn-primary">Save</button>
-                  <button type="button" className="btn-secondary" onClick={() => setEditClub(null)}>Cancel</button>
-                </div>
-              </form>
+              <h2 style={{ marginBottom: 16 }}>{showCreate ? "Create Club" : `Edit: ${editClub!.name}`}</h2>
+              {formFields}
+              <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+                <button style={btnPrimary} onClick={showCreate ? submitCreate : submitEdit}>
+                  {showCreate ? "Create" : "Save"}
+                </button>
+                <button style={btnSecondary} onClick={() => { setShowCreate(false); setEditClub(null) }}>
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
         </div>
 
         <div className="card" style={{ marginBottom: 16, padding: "12px 16px" }}>
-          <input
-            className="form-input"
-            placeholder="Search clubs, app, partner..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ margin: 0 }}
-          />
+          <input style={{ ...input, margin: 0 }} placeholder="Search clubs, app, partner..."
+            value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
+        {loading ? <p>Loading...</p> : (
           <div className="card">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>App</th>
-                  <th>Currency</th>
-                  <th>Partner</th>
-                  <th>Deals</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>Name</th><th>App</th><th>Currency</th><th>Partner</th>
+                  <th>Deals</th><th>Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -241,20 +174,17 @@ export default function ClubsPage() {
                     <td><strong>{club.name}</strong></td>
                     <td>{club.app || "—"}</td>
                     <td>{club.currency}</td>
-                    <td>{club.partner?.name || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
+                    <td>{club.partner?.name || "—"}</td>
                     <td>{club._count.deals}</td>
                     <td>
-                      <span className={`badge ${club.isActive ? "badge-green" : "badge-gray"}`}>
+                      <span style={{ padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: club.isActive ? "#166534" : "#374151", color: club.isActive ? "#86efac" : "#9ca3af" }}>
                         {club.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    <td>
-                      <button className="btn-icon" onClick={() => openEdit(club)} title="Edit">
-                        <i className="ti ti-pencil" />
-                      </button>
-                      <button className="btn-icon" onClick={() => toggleActive(club)}
-                        title={club.isActive ? "Deactivate" : "Activate"}>
-                        <i className={`ti ${club.isActive ? "ti-toggle-right" : "ti-toggle-left"}`} />
+                    <td style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <button style={btnSecondary} onClick={() => openEdit(club)}>Edit</button>
+                      <button style={club.isActive ? btnDanger : btnGreen} onClick={() => toggleActive(club)}>
+                        {club.isActive ? "Deactivate" : "Activate"}
                       </button>
                     </td>
                   </tr>
