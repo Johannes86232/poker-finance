@@ -26,6 +26,7 @@ export default function ClubsPage() {
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [editClub, setEditClub] = useState<Club | null>(null)
+  const [search, setSearch] = useState("")
   const formRef = useRef<HTMLDivElement>(null)
 
   const [form, setForm] = useState({
@@ -40,7 +41,7 @@ export default function ClubsPage() {
       fetch("/api/clubs").then(r => r.json()),
       fetch("/api/partners").then(r => r.json()),
     ])
-    setClubs(c)
+    setClubs(Array.isArray(c) ? c : [])
     setPartners(Array.isArray(p) ? p : [])
     setLoading(false)
   }
@@ -113,6 +114,12 @@ export default function ClubsPage() {
     fetchAll()
   }
 
+  const filtered = clubs.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    (c.app || "").toLowerCase().includes(search.toLowerCase()) ||
+    (c.partner?.name || "").toLowerCase().includes(search.toLowerCase())
+  )
+
   const partnerField = (
     <div className="form-group">
       <label>Partner (Upline)</label>
@@ -121,7 +128,7 @@ export default function ClubsPage() {
         onChange={e => setForm(f => ({ ...f, partnerId: e.target.value }))}
         className="form-input"
       >
-        <option value="">-- kein Partner --</option>
+        <option value="">-- no partner --</option>
         {partners.map(p => (
           <option key={p.id} value={String(p.id)}>{p.name}</option>
         ))}
@@ -177,12 +184,12 @@ export default function ClubsPage() {
         <div ref={formRef}>
           {showCreate && (
             <div className="card" style={{ marginBottom: 24 }}>
-              <h2 style={{ marginBottom: 16 }}>Club erstellen</h2>
-              <form onSubmit={handleCreate}>
+              <h2 style={{ marginBottom: 16 }}>Create Club</h2>
+              <form onSubmit={handleCreate} noValidate>
                 {formFields}
                 <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                  <button type="submit" className="btn-primary">Erstellen</button>
-                  <button type="button" className="btn-secondary" onClick={() => setShowCreate(false)}>Abbrechen</button>
+                  <button type="submit" className="btn-primary">Create</button>
+                  <button type="button" className="btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
                 </div>
               </form>
             </div>
@@ -190,16 +197,26 @@ export default function ClubsPage() {
 
           {editClub && (
             <div className="card" style={{ marginBottom: 24 }}>
-              <h2 style={{ marginBottom: 16 }}>Bearbeiten: {editClub.name}</h2>
-              <form onSubmit={handleEdit}>
+              <h2 style={{ marginBottom: 16 }}>Edit: {editClub.name}</h2>
+              <form onSubmit={handleEdit} noValidate>
                 {formFields}
                 <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                  <button type="submit" className="btn-primary">Speichern</button>
-                  <button type="button" className="btn-secondary" onClick={() => setEditClub(null)}>Abbrechen</button>
+                  <button type="submit" className="btn-primary">Save</button>
+                  <button type="button" className="btn-secondary" onClick={() => setEditClub(null)}>Cancel</button>
                 </div>
               </form>
             </div>
           )}
+        </div>
+
+        <div className="card" style={{ marginBottom: 16, padding: "12px 16px" }}>
+          <input
+            className="form-input"
+            placeholder="Search clubs, app, partner..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ margin: 0 }}
+          />
         </div>
 
         {loading ? (
@@ -219,7 +236,7 @@ export default function ClubsPage() {
                 </tr>
               </thead>
               <tbody>
-                {clubs.map(club => (
+                {filtered.map(club => (
                   <tr key={club.id}>
                     <td><strong>{club.name}</strong></td>
                     <td>{club.app || "—"}</td>
@@ -228,15 +245,15 @@ export default function ClubsPage() {
                     <td>{club._count.deals}</td>
                     <td>
                       <span className={`badge ${club.isActive ? "badge-green" : "badge-gray"}`}>
-                        {club.isActive ? "Aktiv" : "Inaktiv"}
+                        {club.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
                     <td>
-                      <button className="btn-icon" onClick={() => openEdit(club)} title="Bearbeiten">
+                      <button className="btn-icon" onClick={() => openEdit(club)} title="Edit">
                         <i className="ti ti-pencil" />
                       </button>
                       <button className="btn-icon" onClick={() => toggleActive(club)}
-                        title={club.isActive ? "Deaktivieren" : "Aktivieren"}>
+                        title={club.isActive ? "Deactivate" : "Activate"}>
                         <i className={`ti ${club.isActive ? "ti-toggle-right" : "ti-toggle-left"}`} />
                       </button>
                     </td>
