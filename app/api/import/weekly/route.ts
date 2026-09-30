@@ -19,14 +19,14 @@ export async function POST(req: NextRequest) {
     const worksheet = workbook.Sheets[sheetName]
     const allRows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null })
 
-    // Find header row - PIA format has "Player Account Id"
+    // Find header row
     let dataStartRow = -1
     let headers: string[] = []
 
     for (let i = 0; i < allRows.length; i++) {
       const row = allRows[i]
       const rowStr = row.map((c: any) => String(c ?? "")).join(",").toLowerCase()
-      if (rowStr.includes("player account id") || rowStr.includes("player account screen")) {
+      if (rowStr.includes("player account") || rowStr.includes("rake")) {
         headers = row.map((c: any) => String(c ?? "").trim())
         dataStartRow = i + 1
         break
@@ -34,19 +34,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (dataStartRow === -1) {
-      return NextResponse.json({ error: "Could not find header row. Expected PIA bulk export format." }, { status: 400 })
+      return NextResponse.json({ error: "Could not find header row." }, { status: 400 })
     }
 
     const col = (name: string) => headers.findIndex(h => h.toLowerCase().includes(name.toLowerCase()))
 
-    const colPlayerId   = col("player account id")
-    const colRake       = col("rake")
-    const colResult     = col("result")
-    const colXeRate     = col("xe-rate")
-
-    if (colPlayerId === -1 || colResult === -1) {
-      return NextResponse.json({ error: `Missing required columns. Found: ${headers.join(", ")}` }, { status: 400 })
-    }
+    const colPlayerId      = col("player account id")
+    const colPlayerScreen  = col("player account screen")
+    const colRake          = col("rake")
+    const colResult        = col("result")
+    const colXeRate        = col("xe-rate")
 
     const week = await prisma.week.upsert({
       where: { year_weekNum: { year, weekNum } },
@@ -55,61 +52,56 @@ export async function POST(req: NextRequest) {
     })
 
     const results = { imported: 0, skipped: 0, errors: [] as string[] }
-    const dataRows = allRows.slice(dataStartRow).filter((row: any[]) =>
-      row[colPlayerId] && String(row[colPlayerId]).trim() !== ""
-    )
+    const dataRows = allRows.slice(dataStartRow).filter((row: any[]) => {
+      const id = colPlayerId >= 0 ? String(row[colPlayerId] ?? "").trim() : ""
+      const name = colPlayerScreen >= 0 ? String(row[colPlayerScreen] ?? "").trim() : ""
+      return id !== "" || name !== ""
+    })
 
     for (const row of dataRows) {
-      const piaId = String(row[colPlayerId] ?? "").trim()
+      const piaId = colPlayerId >= 0 ? String(row[colPlayerId] ?? "").trim() : ""
+      const screenName = colPlayerScreen >= 0 ? String(row[colPlayerScreen] ?? "").trim() : ""
       const resultRaw = parseFloat(String(row[colResult] ?? "0").replace(/[^0-9.-]/g, "")) || 0
       const rake = colRake >= 0 ? parseFloat(String(row[colRake] ?? "0").replace(/[^0-9.-]/g, "")) || 0 : 0
       const xeRate = colXeRate >= 0 ? parseFloat(String(row[colXeRate] ?? "1").replace(/[^0-9.-]/g, "")) || 1 : 1
 
-      // Convert result to USD using exchange rate
       const resultUsd = resultRaw / xeRate
       const rakeUsd = rake / xeRate
 
-      const account = await prisma.account.findFirst({
-        where: { accountId: piaId, isActive: true },
-        include: { deals: { where: { isActive: true }, take: 1 } }
-      })
+      // Match by accountId first, then fall back to nickname
+      let account = null
+      if (piaId) {
+        account = await prisma.account.findFirst({
+          where: { accountId: piaId, isActive: true },
+          include: { deals: { where: { isActive: true }, take: 1 } }
+        })
+      }
+      if (!account && screenName) {
+        account = await prisma.account.findFirst({
+          where: { nickname: { equals: screenName, mode: "insensitive" }, isActive: true },
+          include: { deals: { where: { isActive: true }, take: 1 } }
+        })
+      }
 
       if (!account) {
         results.skipped++
-        results.errors.push(`Account not found for PIA ID: "${piaId}"`)
+        results.errors.push(`No account for: "${screenName || piaId}"`)
         continue
       }
 
       const deal = account.deals[0]
       const rakebackPct = deal ? deal.rakebackPct : 0
-      const rebatePct = deal ? deal.rebatePct : 0
       const rakebackAmount = rakeUsd * rakebackPct
 
       try {
         await prisma.weeklyReport.upsert({
           where: { accountId_weekId: { accountId: account.id, weekId: week.id } },
-          update: {
-            result: resultUsd,
-            rake: rakeUsd,
-            rakebackAmount,
-            netResult: resultUsd + rakebackAmount,
-            exchangeRate: xeRate,
-            importedAt: new Date()
-          },
-          create: {
-            accountId: account.id,
-            weekId: week.id,
-            result: resultUsd,
-            rake: rakeUsd,
-            rakebackAmount,
-            netResult: resultUsd + rakebackAmount,
-            exchangeRate: xeRate,
-            importedAt: new Date()
-          }
+          update: { result: resultUsd, rake: rakeUsd, rakebackAmount, netResult: resultUsd + rakebackAmount, exchangeRate: xeRate, importedAt: new Date() },
+          create: { accountId: account.id, weekId: week.id, result: resultUsd, rake: rakeUsd, rakebackAmount, netResult: resultUsd + rakebackAmount, exchangeRate: xeRate, importedAt: new Date() }
         })
         results.imported++
       } catch (e: any) {
-        results.errors.push(`Error for "${piaId}": ${e.message}`)
+        results.errors.push(`Error for "${screenName}": ${e.message}`)
         results.skipped++
       }
     }
