@@ -47,11 +47,11 @@ export async function POST(req: NextRequest) {
 
     const col = (name: string) => headers.findIndex(h => h.toLowerCase().includes(name.toLowerCase()))
 
-    const colPlayerId      = col("player account id")
-    const colPlayerScreen  = col("player account screen")
-    const colRake          = col("rake")
-    const colResult        = col("result")
-    const colXeRate        = col("xe-rate")
+    const colPlayerId     = col("player account id")
+    const colPlayerScreen = col("player account screen")
+    const colRake         = col("rake")
+    const colResult       = col("result")
+    const colXeRate       = col("xe-rate")
 
     const week = await prisma.week.upsert({
       where: { year_weekNum: { year, weekNum } },
@@ -94,17 +94,20 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      // Ensure account has a Deal linked to this club (create if missing)
-      const existingDeal = await prisma.deal.findFirst({
+      // Ensure Deal exists linking account to this club
+      let deal = await prisma.deal.findFirst({
         where: { accountId: account.id, clubId: clubId, isActive: true }
       })
-      if (!existingDeal) {
-        await prisma.deal.create({
+      if (!deal) {
+        deal = await prisma.deal.create({
           data: { accountId: account.id, clubId: clubId, isActive: true }
         })
       }
 
-      const rakebackAmount = 0
+      // Player rakeback: what we pay the player (deal.rakebackPct stored as decimal e.g. 0.60)
+      const rakebackPct = deal.rakebackPct ?? 0
+      const rakebackAmount = rakeUsd * rakebackPct
+      // netResult = what player owes us (result + rakeback they receive)
       const netResult = resultUsd + rakebackAmount
 
       try {
@@ -127,4 +130,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-
