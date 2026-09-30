@@ -1,4 +1,4 @@
-"use client"
+ï»¿"use client"
 import { useState, useEffect } from "react"
 
 function getISOWeek(date: Date) {
@@ -20,7 +20,7 @@ function getWeekDates(year: number, week: number) {
   const sunday = new Date(monday)
   sunday.setDate(monday.getDate() + 6)
   const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })
-  return `${fmt(monday)} – ${fmt(sunday)}`
+  return `${fmt(monday)} - ${fmt(sunday)}`
 }
 
 export default function ImportPage() {
@@ -75,9 +75,9 @@ export default function ImportPage() {
       </div>
 
       <div style={{ background: "var(--bg-raised)", border: "0.5px solid var(--border-mid)", borderRadius: "var(--radius-lg)", padding: "20px", marginBottom: "16px" }}>
-        <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-secondary)", marginBottom: "12px" }}>1 — Club</p>
+        <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-secondary)", marginBottom: "12px" }}>1 â€” Club</p>
         <select value={clubId} onChange={e => setClubId(e.target.value)} style={{ ...inp }}>
-          <option value="">— Select club —</option>
+          <option value="">â€” Select club â€”</option>
           {clubs.map(c => (
             <option key={c.id} value={String(c.id)}>{c.name}{c.app ? ` (${c.app})` : ""}</option>
           ))}
@@ -87,18 +87,18 @@ export default function ImportPage() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
               <div>
                 <div style={{ color: "var(--text-tertiary)", marginBottom: "3px" }}>Partner</div>
-                <div style={{ fontWeight: 500 }}>{selectedClub.partner?.name || "—"}</div>
+                <div style={{ fontWeight: 500 }}>{selectedClub.partner?.name || "â€”"}</div>
               </div>
               <div>
                 <div style={{ color: "var(--text-tertiary)", marginBottom: "3px" }}>Partner RB %</div>
                 <div style={{ fontWeight: 600, color: selectedClub.partnerRakebackPct > 0 ? "var(--amber)" : "var(--text-secondary)" }}>
-                  {selectedClub.partnerRakebackPct > 0 ? `${Math.round(selectedClub.partnerRakebackPct * 100)}%` : "—"}
+                  {selectedClub.partnerRakebackPct > 0 ? `${Math.round(selectedClub.partnerRakebackPct * 100)}%` : "â€”"}
                 </div>
               </div>
               <div>
                 <div style={{ color: "var(--text-tertiary)", marginBottom: "3px" }}>Rebate %</div>
                 <div style={{ fontWeight: 500 }}>
-                  {selectedClub.partnerRebatePct > 0 ? `${Math.round(selectedClub.partnerRebatePct * 100)}%` : "—"}
+                  {selectedClub.partnerRebatePct > 0 ? `${Math.round(selectedClub.partnerRebatePct * 100)}%` : "â€”"}
                 </div>
               </div>
             </div>
@@ -112,7 +112,7 @@ export default function ImportPage() {
       </div>
 
       <div style={{ background: "var(--bg-raised)", border: "0.5px solid var(--border-mid)", borderRadius: "var(--radius-lg)", padding: "20px", marginBottom: "16px" }}>
-        <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-secondary)", marginBottom: "12px" }}>2 — Calendar Week</p>
+        <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-secondary)", marginBottom: "12px" }}>2 â€” Calendar Week</p>
         <div style={{ display: "flex", gap: "16px", alignItems: "end" }}>
           <div style={{ flex: 1 }}>
             <label style={{ display: "block", fontSize: "11px", color: "var(--text-secondary)", marginBottom: "6px" }}>Year</label>
@@ -131,7 +131,7 @@ export default function ImportPage() {
       </div>
 
       <div style={{ background: "var(--bg-raised)", border: "0.5px solid var(--border-mid)", borderRadius: "var(--radius-lg)", padding: "20px", marginBottom: "16px" }}>
-        <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-secondary)", marginBottom: "12px" }}>3 — File</p>
+        <p style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-secondary)", marginBottom: "12px" }}>3 â€” File</p>
         <div onDrop={onDrop} onDragOver={e => e.preventDefault()} onClick={() => document.getElementById("fi")?.click()}
           style={{ border: "1.5px dashed var(--border-strong)", borderRadius: "var(--radius-md)", padding: "32px", textAlign: "center", cursor: "pointer", background: "var(--bg-base)" }}>
           <input id="fi" type="file" accept=".xlsx,.xls,.csv" onChange={e => e.target.files?.[0] && setF(e.target.files[0])} style={{ display: "none" }} />
@@ -166,3 +166,4 @@ export default function ImportPage() {
     </div>
   )
 }
+
