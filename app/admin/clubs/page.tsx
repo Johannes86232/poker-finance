@@ -143,7 +143,7 @@ export default function ClubsPage() {
               <h2 style={{ marginBottom: 16 }}>{showCreate ? "Create Club" : `Edit: ${editClub!.name}`}</h2>
               {formFields}
               <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-                <button style={btnPrimary} onClick={() => { alert("clicked"); if (showCreate) submitCreate(); else submitEdit(); }}>
+                <button style={btnPrimary} onClick={() => { if (showCreate) submitCreate(); else submitEdit(); }}>
                   {showCreate ? "Create" : "Save"}
                 </button>
                 <button style={btnSecondary} onClick={() => { setShowCreate(false); setEditClub(null) }}>
