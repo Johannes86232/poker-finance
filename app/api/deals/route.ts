@@ -23,25 +23,41 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { accountId, clubId, rakebackPct, rebatePct } = body
+    const { userId, clubId, rakebackPct, rebatePct } = body
 
-    if (!accountId || !clubId) {
-      return NextResponse.json({ error: "Account and Club are required" }, { status: 400 })
+    if (!userId || !clubId) {
+      return NextResponse.json({ error: "User and Club are required" }, { status: 400 })
     }
 
-    const deal = await prisma.deal.create({
-      data: {
-        accountId: parseInt(accountId),
-        clubId: parseInt(clubId),
-        rakebackPct: parseFloat(rakebackPct) || 0,
-        rebatePct: parseFloat(rebatePct) || 0,
-      },
-      include: {
-        account: { include: { user: { select: { name: true } } } },
-        club: { select: { name: true } },
-      },
+    // Get all accounts for this user
+    const accounts = await prisma.account.findMany({
+      where: { userId: parseInt(userId), isActive: true },
+      select: { id: true },
     })
-    return NextResponse.json(deal, { status: 201 })
+
+    if (accounts.length === 0) {
+      return NextResponse.json({ error: "User has no active accounts" }, { status: 400 })
+    }
+
+    // Create a deal for each account
+    const deals = await Promise.all(
+      accounts.map(account =>
+        prisma.deal.create({
+          data: {
+            accountId: account.id,
+            clubId: parseInt(clubId),
+            rakebackPct: parseFloat(rakebackPct) || 0,
+            rebatePct: parseFloat(rebatePct) || 0,
+          },
+          include: {
+            account: { include: { user: { select: { name: true } } } },
+            club: { select: { name: true } },
+          },
+        })
+      )
+    )
+
+    return NextResponse.json(deals, { status: 201 })
   } catch (error) {
     return NextResponse.json({ error: "Failed to create deal" }, { status: 500 })
   }

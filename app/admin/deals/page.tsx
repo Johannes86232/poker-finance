@@ -18,12 +18,12 @@ type Deal = {
 type Account = {
   id: number
   nickname: string
-  user: { name: string }
+  user: { id: number; name: string }
 }
 
 type Club = { id: number; name: string; currency: string }
 
-const emptyForm = { accountId: "", clubId: "", rakebackPct: "50", rebatePct: "0" }
+const emptyForm = { userId: "", clubId: "", rakebackPct: "50", rebatePct: "0" }
 
 export default function DealsPage() {
   const [deals, setDeals] = useState<Deal[]>([])
@@ -55,7 +55,7 @@ const fetchAll = async () => {
   useEffect(() => { fetchAll() }, [])
 
   const handleCreate = async () => {
-    if (!form.accountId || !form.clubId) { setError("Account and Club are required"); return }
+    if (!form.userId || !form.clubId) { setError("User and Club are required"); return }
     setSaving(true)
     setError("")
     const res = await fetch("/api/deals", {
@@ -101,6 +101,11 @@ const fetchAll = async () => {
     await fetchAll()
   }
 
+  // Unique users from accounts list
+  const uniqueUsers = Array.from(
+    new Map(accounts.map(a => [a.user.id, a.user])).values()
+  )
+
   const filtered = deals.filter(d =>
     d.account.nickname.toLowerCase().includes(search.toLowerCase()) ||
     d.account.user.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -127,14 +132,12 @@ const fetchAll = async () => {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px", gap: 10, alignItems: "end" }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Account *</label>
-              <select className="form-select" value={form.accountId}
-                onChange={e => setForm({ ...form, accountId: e.target.value })}>
-                <option value="">Select account...</option>
-                {accounts.map(a => (
-                  <option key={a.id} value={a.id}>
-                    {a.user.name}{a.nickname ? ` — ${a.nickname}` : ` (#${a.id})`}
-                  </option>
+              <label className="form-label">User *</label>
+              <select className="form-select" value={form.userId}
+                onChange={e => setForm({ ...form, userId: e.target.value })}>
+                <option value="">Select user...</option>
+                {uniqueUsers.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
             </div>
