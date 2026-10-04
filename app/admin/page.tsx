@@ -58,7 +58,7 @@ export default function AdminDashboard() {
         {/* P&L Summary */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
           <div className="card" style={{ textAlign: "center" }}>
-            <div className="kpi-label" style={{ marginBottom: 6 }}>We owe out</div>
+            <div className="kpi-label" style={{ marginBottom: 6 }}>We are owed</div>
             <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-1px", color: "var(--red)" }}>
               {loading ? "-" : `${fmt(data?.downlineOwes ?? 0)} USD`}
             </div>

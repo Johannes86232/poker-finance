@@ -19,7 +19,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, app, currency, calcType, chipValue, partnerId, partnerRakebackPct, partnerRebatePct } = await req.json()
+    const { name, app, currency, calcType, chipValue, partnerId, partnerRakebackPct, partnerRebatePct, rebateOnRakeback, rebateOn100Rake } = await req.json()
     const club = await prisma.club.create({
       data: {
         name,
@@ -30,6 +30,8 @@ export async function POST(req: Request) {
         partnerId: partnerId ? Number(partnerId) : null,
         partnerRakebackPct: partnerRakebackPct ? parseFloat(partnerRakebackPct) / 100 : 0,
         partnerRebatePct: partnerRebatePct ? parseFloat(partnerRebatePct) / 100 : 0,
+        rebateOnRakeback: rebateOnRakeback ?? false,
+        rebateOn100Rake: rebateOn100Rake ?? false,
       },
       include: {
         partner: { select: { id: true, name: true } },
@@ -46,7 +48,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { id, name, app, currency, calcType, chipValue, partnerId, isActive, partnerRakebackPct, partnerRebatePct } = await req.json()
+    const { id, name, app, currency, calcType, chipValue, partnerId, isActive, partnerRakebackPct, partnerRebatePct, rebateOnRakeback, rebateOn100Rake } = await req.json()
     const club = await prisma.club.update({
       where: { id: Number(id) },
       data: {
@@ -59,6 +61,8 @@ export async function PATCH(req: Request) {
         ...(partnerId !== undefined && { partnerId: partnerId ? Number(partnerId) : null }),
         ...(partnerRakebackPct !== undefined && { partnerRakebackPct: parseFloat(partnerRakebackPct) / 100 }),
         ...(partnerRebatePct !== undefined && { partnerRebatePct: parseFloat(partnerRebatePct) / 100 }),
+        ...(rebateOnRakeback !== undefined && { rebateOnRakeback }),
+        ...(rebateOn100Rake !== undefined && { rebateOn100Rake }),
       },
       include: {
         partner: { select: { id: true, name: true } },

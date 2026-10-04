@@ -8,10 +8,12 @@ interface Club {
   calcType: string; chipValue: number; isActive: boolean
   partnerId: number | null; partner: Partner | null
   partnerRakebackPct: number; partnerRebatePct: number
+  rebateOnRakeback: boolean; rebateOn100Rake: boolean
   _count: { deals: number }
 }
 
 const POKER_APPS = ["ClubGG", "Pokerbros", "X-Poker", "Kingspoker", "Pokership", "Other"]
+const CURRENCIES = ["USD", "EUR", "CNY", "PHP", "THB", "VND", "MYR", "KRW", "JPY", "INR", "BRL", "USDT"]
 
 const btn: React.CSSProperties = { padding: "8px 18px", borderRadius: 6, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 14 }
 const btnPrimary: React.CSSProperties = { ...btn, background: "#6366f1", color: "#fff" }
@@ -19,6 +21,12 @@ const btnSecondary: React.CSSProperties = { ...btn, background: "#374151", color
 const btnDanger: React.CSSProperties = { ...btn, background: "#dc2626", color: "#fff", padding: "6px 12px" }
 const btnGreen: React.CSSProperties = { ...btn, background: "#16a34a", color: "#fff", padding: "6px 12px" }
 const inp: React.CSSProperties = { width: "100%", padding: "8px 12px", borderRadius: 6, border: "1px solid #374151", background: "#1f2937", color: "#f9fafb", fontSize: 14, boxSizing: "border-box" }
+
+const emptyForm = {
+  name: "", app: "", currency: "USD", calcType: "STANDARD", chipValue: "1",
+  partnerId: "", partnerRakebackPct: "", partnerRebatePct: "",
+  rebateOnRakeback: false, rebateOn100Rake: false,
+}
 
 export default function ClubsPage() {
   const [clubs, setClubs] = useState<Club[]>([])
@@ -28,7 +36,7 @@ export default function ClubsPage() {
   const [editClub, setEditClub] = useState<Club | null>(null)
   const [search, setSearch] = useState("")
   const formRef = useRef<HTMLDivElement>(null)
-  const [form, setForm] = useState({ name: "", app: "", currency: "USD", calcType: "STANDARD", chipValue: "1", partnerId: "", partnerRakebackPct: "", partnerRebatePct: "" })
+  const [form, setForm] = useState(emptyForm)
 
   useEffect(() => { fetchAll() }, [])
 
@@ -43,7 +51,7 @@ export default function ClubsPage() {
   }
 
   function openCreate() {
-    setForm({ name: "", app: "", currency: "USD", calcType: "STANDARD", chipValue: "1", partnerId: "", partnerRakebackPct: "", partnerRebatePct: "" })
+    setForm(emptyForm)
     setEditClub(null); setShowCreate(true)
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50)
   }
@@ -54,6 +62,8 @@ export default function ClubsPage() {
       chipValue: String(club.chipValue), partnerId: club.partnerId ? String(club.partnerId) : "",
       partnerRakebackPct: club.partnerRakebackPct ? String(Math.round(club.partnerRakebackPct * 100)) : "",
       partnerRebatePct: club.partnerRebatePct ? String(Math.round(club.partnerRebatePct * 100)) : "",
+      rebateOnRakeback: club.rebateOnRakeback ?? false,
+      rebateOn100Rake: club.rebateOn100Rake ?? false,
     })
     setShowCreate(false); setEditClub(club)
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50)
@@ -62,7 +72,11 @@ export default function ClubsPage() {
   async function submitCreate() {
     const res = await fetch("/api/clubs", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, chipValue: parseFloat(form.chipValue) || 1, partnerId: form.partnerId ? parseInt(form.partnerId) : null }),
+      body: JSON.stringify({
+        ...form,
+        chipValue: parseFloat(form.chipValue) || 1,
+        partnerId: form.partnerId ? parseInt(form.partnerId) : null,
+      }),
     })
     if (res.ok) { setShowCreate(false); fetchAll() }
     else { const err = await res.json(); alert("Error: " + (err.error || "unknown")) }
@@ -72,7 +86,11 @@ export default function ClubsPage() {
     if (!editClub) return
     const res = await fetch("/api/clubs", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editClub.id, ...form, chipValue: parseFloat(form.chipValue) || 1, partnerId: form.partnerId ? parseInt(form.partnerId) : null }),
+      body: JSON.stringify({
+        id: editClub.id, ...form,
+        chipValue: parseFloat(form.chipValue) || 1,
+        partnerId: form.partnerId ? parseInt(form.partnerId) : null,
+      }),
     })
     if (res.ok) { setEditClub(null); fetchAll() }
     else { const err = await res.json(); alert("Error: " + (err.error || "unknown")) }
@@ -89,14 +107,35 @@ export default function ClubsPage() {
     (c.partner?.name || "").toLowerCase().includes(search.toLowerCase())
   )
 
-  const f = (key: keyof typeof form) => (
-    <input style={inp} value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} />
-  )
   const label = (text: string) => <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#9ca3af" }}>{text}</label>
+
+  const Toggle = ({ field, label: lbl }: { field: "rebateOnRakeback" | "rebateOn100Rake", label: string }) => {
+    const on = form[field] as boolean
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 6, border: "1px solid #374151", background: "#1f2937" }}>
+        <div
+          onClick={() => setForm(p => ({ ...p, [field]: !p[field] }))}
+          style={{
+            width: 36, height: 20, borderRadius: 10, cursor: "pointer", position: "relative", flexShrink: 0,
+            background: on ? "#6366f1" : "#374151", transition: "background 0.2s"
+          }}
+        >
+          <div style={{
+            position: "absolute", top: 2, left: on ? 18 : 2, width: 16, height: 16,
+            borderRadius: "50%", background: "#fff", transition: "left 0.2s"
+          }} />
+        </div>
+        <span style={{ fontSize: 13, color: on ? "#f9fafb" : "#9ca3af" }}>{lbl}</span>
+      </div>
+    )
+  }
 
   const formFields = (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-      <div>{label("Name *")}{f("name")}</div>
+      <div>
+        {label("Name *")}
+        <input style={inp} value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} />
+      </div>
       <div>
         {label("App")}
         <select style={inp} value={form.app} onChange={e => setForm(p => ({ ...p, app: e.target.value }))}>
@@ -104,13 +143,15 @@ export default function ClubsPage() {
           {POKER_APPS.map(a => <option key={a} value={a}>{a}</option>)}
         </select>
       </div>
-      <div>{label("Chip Value")}{f("chipValue")}</div>
       <div>
         {label("Currency")}
         <select style={inp} value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))}>
-          <option value="USD">USD</option>
-          <option value="EUR">EUR</option>
+          {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
+      </div>
+      <div>
+        {label("Chip Value")}
+        <input style={inp} value={form.chipValue} onChange={e => setForm(p => ({ ...p, chipValue: e.target.value }))} />
       </div>
       <div>
         {label("Partner (Upline)")}
@@ -119,8 +160,21 @@ export default function ClubsPage() {
           {partners.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
         </select>
       </div>
-      <div>{label("Partner RB % (e.g. 70)")}{f("partnerRakebackPct")}</div>
-      <div>{label("Partner Rebate % (e.g. 0)")}{f("partnerRebatePct")}</div>
+      <div>
+        {label("Partner RB % (e.g. 70)")}
+        <input style={inp} value={form.partnerRakebackPct} onChange={e => setForm(p => ({ ...p, partnerRakebackPct: e.target.value }))} />
+      </div>
+      <div>
+        {label("Partner Rebate % (e.g. 0)")}
+        <input style={inp} value={form.partnerRebatePct} onChange={e => setForm(p => ({ ...p, partnerRebatePct: e.target.value }))} />
+      </div>
+      <div style={{ gridColumn: "1 / -1" }}>
+        {label("Rebate Calculation")}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 4 }}>
+          <Toggle field="rebateOnRakeback" label="Rebate on Rakeback" />
+          <Toggle field="rebateOn100Rake" label="Rebate on 100% Rake" />
+        </div>
+      </div>
     </div>
   )
 
@@ -155,17 +209,25 @@ export default function ClubsPage() {
               <thead>
                 <tr>
                   <th>Name</th><th>App</th><th>Currency</th><th>Partner</th>
-                  <th>Partner RB%</th><th>Deals</th><th>Status</th><th>Actions</th>
+                  <th>Partner RB%</th><th>Rebate Calc</th><th>Deals</th><th>Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(club => (
                   <tr key={club.id}>
                     <td><strong>{club.name}</strong></td>
-                    <td>{club.app || "—"}</td>
+                    <td>{club.app
+                      ? <span className="badge badge-accent">{club.app}</span>
+                      : <span style={{ color: "var(--text-tertiary)" }}>—</span>}
+                    </td>
                     <td>{club.currency}</td>
                     <td>{club.partner?.name || "—"}</td>
                     <td>{club.partnerRakebackPct ? `${Math.round(club.partnerRakebackPct * 100)}%` : "—"}</td>
+                    <td style={{ fontSize: 11 }}>
+                      {club.rebateOnRakeback && <div style={{ color: "var(--accent)" }}>on RB</div>}
+                      {club.rebateOn100Rake && <div style={{ color: "var(--amber)" }}>on 100% rake</div>}
+                      {!club.rebateOnRakeback && !club.rebateOn100Rake && <span style={{ color: "var(--text-tertiary)" }}>—</span>}
+                    </td>
                     <td>{club._count.deals}</td>
                     <td>
                       <span style={{ padding: "3px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: club.isActive ? "#166534" : "#374151", color: club.isActive ? "#86efac" : "#9ca3af" }}>
