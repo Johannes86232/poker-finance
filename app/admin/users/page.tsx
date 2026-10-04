@@ -126,6 +126,8 @@ export default function UsersPage() {
               <select className="form-select" value={form.role}
                 onChange={e => setForm({ ...form, role: e.target.value })}>
                 <option value="USER">User</option>
+                <option value="STAFF">Staff</option>
+                <option value="EXECUTIVE">Executive</option>
                 <option value="ADMIN">Admin</option>
               </select>
             </div>
@@ -165,6 +167,8 @@ export default function UsersPage() {
                 <select className="form-select" value={editUser.role}
                   onChange={e => setEditUser({ ...editUser, role: e.target.value })}>
                   <option value="USER">User</option>
+                  <option value="STAFF">Staff</option>
+                  <option value="EXECUTIVE">Executive</option>
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>

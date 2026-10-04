@@ -58,7 +58,7 @@ export default function AdminDashboard() {
         {/* P&L Summary */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
           <div className="card" style={{ textAlign: "center" }}>
-            <div className="kpi-label" style={{ marginBottom: 6 }}>Downline owes us</div>
+            <div className="kpi-label" style={{ marginBottom: 6 }}>We owe out</div>
             <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-1px", color: "var(--red)" }}>
               {loading ? "-" : `${fmt(data?.downlineOwes ?? 0)} USD`}
             </div>
@@ -67,7 +67,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="card" style={{ textAlign: "center" }}>
-            <div className="kpi-label" style={{ marginBottom: 6 }}>We owe upline</div>
+            <div className="kpi-label" style={{ marginBottom: 6 }}>We owe</div>
             <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-1px", color: "var(--amber)" }}>
               {loading ? "-" : `${fmt(data?.uplineOwes ?? 0)} USD`}
             </div>
@@ -92,13 +92,6 @@ export default function AdminDashboard() {
         {/* KPI Grid */}
         <div className="kpi-grid" style={{ marginBottom: 16 }}>
           <div className="kpi-card">
-            <div className="kpi-label">Total Exposure</div>
-            <div className={`kpi-value ${(data?.totalUsd ?? 0) >= 0 ? "val-pos" : "val-neg"}`}>
-              {loading ? "-" : `${(data?.totalUsd ?? 0) >= 0 ? "+" : "-"}${fmt(data?.totalUsd ?? 0)}`}
-            </div>
-            <div className="kpi-sub">USD &middot; net all users</div>
-          </div>
-          <div className="kpi-card">
             <div className="kpi-label">Active Users</div>
             <div className="kpi-value val-neutral">{loading ? "-" : data?.users.length}</div>
             <div className="kpi-sub">{debtors} owe us</div>
@@ -107,11 +100,6 @@ export default function AdminDashboard() {
             <div className="kpi-label">Active Clubs</div>
             <div className="kpi-value val-neutral">{loading ? "-" : data?.activeClubs}</div>
             <div className="kpi-sub">{loading ? "-" : data?.activeAccounts} accounts</div>
-          </div>
-          <div className="kpi-card">
-            <div className="kpi-label">EUR Exposure</div>
-            <div className="kpi-value val-neutral">-</div>
-            <div className="kpi-sub">not tracked yet</div>
           </div>
         </div>
 

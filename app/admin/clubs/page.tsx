@@ -11,6 +11,8 @@ interface Club {
   _count: { deals: number }
 }
 
+const POKER_APPS = ["ClubGG", "Pokerbros", "X-Poker", "Kingspoker", "Pokership", "Other"]
+
 const btn: React.CSSProperties = { padding: "8px 18px", borderRadius: 6, border: "none", cursor: "pointer", fontWeight: 600, fontSize: 14 }
 const btnPrimary: React.CSSProperties = { ...btn, background: "#6366f1", color: "#fff" }
 const btnSecondary: React.CSSProperties = { ...btn, background: "#374151", color: "#e5e7eb" }
@@ -95,7 +97,13 @@ export default function ClubsPage() {
   const formFields = (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       <div>{label("Name *")}{f("name")}</div>
-      <div>{label("App")}{f("app")}</div>
+      <div>
+        {label("App")}
+        <select style={inp} value={form.app} onChange={e => setForm(p => ({ ...p, app: e.target.value }))}>
+          <option value="">Select app...</option>
+          {POKER_APPS.map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+      </div>
       <div>{label("Chip Value")}{f("chipValue")}</div>
       <div>
         {label("Currency")}
