@@ -176,13 +176,13 @@ const fetchAll = async () => {
                 <div className="form-group">
                   <label className="form-label">Rakeback %</label>
                   <input className="form-input" type="number" step="0.5" min="0" max="100"
-                    value={editDeal.rakebackPct}
+                    value={Math.round(editDeal.rakebackPct * 100)}
                     onChange={e => setEditDeal({ ...editDeal, rakebackPct: parseFloat(e.target.value) })} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Rebate %</label>
                   <input className="form-input" type="number" step="0.5" min="0" max="100"
-                    value={editDeal.rebatePct}
+                    value={Math.round(editDeal.rebatePct * 100)}
                     onChange={e => setEditDeal({ ...editDeal, rebatePct: parseFloat(e.target.value) })} />
                 </div>
               </div>

@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
           data: {
             accountId: account.id,
             clubId: parseInt(clubId),
-            rakebackPct: parseFloat(rakebackPct) || 0,
-            rebatePct: parseFloat(rebatePct) || 0,
+            rakebackPct: (parseFloat(rakebackPct) || 0) / 100,
+            rebatePct: (parseFloat(rebatePct) || 0) / 100,
           },
           include: {
             account: { include: { user: { select: { name: true } } } },
