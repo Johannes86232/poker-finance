@@ -6,7 +6,7 @@ export async function GET() {
     const clubs = await prisma.club.findMany({
       orderBy: { name: "asc" },
       include: {
-        partner: { select: { id: true, name: true } },
+        uplineUser: { select: { id: true, name: true } },
         _count: { select: { deals: true } },
       },
     })
@@ -19,7 +19,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, app, currency, calcType, chipValue, partnerId, partnerRakebackPct, partnerRebatePct, rebateOnRakeback, rebateOn100Rake } = await req.json()
+    const { name, app, currency, calcType, chipValue, uplineUserId, uplineRakebackPct, uplineRebatePct, rebateOnRakeback, rebateOn100Rake } = await req.json()
     const club = await prisma.club.create({
       data: {
         name,
@@ -27,14 +27,14 @@ export async function POST(req: Request) {
         currency: currency || "USD",
         calcType: calcType || "STANDARD",
         chipValue: parseFloat(chipValue) || 1,
-        partnerId: partnerId ? Number(partnerId) : null,
-        partnerRakebackPct: partnerRakebackPct ? parseFloat(partnerRakebackPct) / 100 : 0,
-        partnerRebatePct: partnerRebatePct ? parseFloat(partnerRebatePct) / 100 : 0,
+        uplineUserId: uplineUserId ? Number(uplineUserId) : null,
+        uplineRakebackPct: uplineRakebackPct ? parseFloat(uplineRakebackPct) / 100 : 0,
+        uplineRebatePct: uplineRebatePct ? parseFloat(uplineRebatePct) / 100 : 0,
         rebateOnRakeback: rebateOnRakeback ?? false,
         rebateOn100Rake: rebateOn100Rake ?? false,
       },
       include: {
-        partner: { select: { id: true, name: true } },
+        uplineUser: { select: { id: true, name: true } },
         _count: { select: { deals: true } },
       },
     })
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { id, name, app, currency, calcType, chipValue, partnerId, isActive, partnerRakebackPct, partnerRebatePct, rebateOnRakeback, rebateOn100Rake } = await req.json()
+    const { id, name, app, currency, calcType, chipValue, uplineUserId, isActive, uplineRakebackPct, uplineRebatePct, rebateOnRakeback, rebateOn100Rake } = await req.json()
     const club = await prisma.club.update({
       where: { id: Number(id) },
       data: {
@@ -58,14 +58,14 @@ export async function PATCH(req: Request) {
         ...(calcType !== undefined && { calcType }),
         ...(chipValue !== undefined && { chipValue: parseFloat(chipValue) }),
         ...(isActive !== undefined && { isActive }),
-        ...(partnerId !== undefined && { partnerId: partnerId ? Number(partnerId) : null }),
-        ...(partnerRakebackPct !== undefined && { partnerRakebackPct: parseFloat(partnerRakebackPct) / 100 }),
-        ...(partnerRebatePct !== undefined && { partnerRebatePct: parseFloat(partnerRebatePct) / 100 }),
+        ...(uplineUserId !== undefined && { uplineUserId: uplineUserId ? Number(uplineUserId) : null }),
+        ...(uplineRakebackPct !== undefined && { uplineRakebackPct: parseFloat(uplineRakebackPct) / 100 }),
+        ...(uplineRebatePct !== undefined && { uplineRebatePct: parseFloat(uplineRebatePct) / 100 }),
         ...(rebateOnRakeback !== undefined && { rebateOnRakeback }),
         ...(rebateOn100Rake !== undefined && { rebateOn100Rake }),
       },
       include: {
-        partner: { select: { id: true, name: true } },
+        uplineUser: { select: { id: true, name: true } },
         _count: { select: { deals: true } },
       },
     })

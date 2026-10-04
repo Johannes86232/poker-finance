@@ -11,6 +11,8 @@ datasource db {
 
 enum Role {
   ADMIN
+  EXECUTIVE
+  STAFF
   USER
 }
 
@@ -40,17 +42,6 @@ enum CalcType {
   ADJUSTED
 }
 
-model Partner {
-  id             Int      @id @default(autoincrement())
-  name           String   @unique
-  telegramHandle String?
-  notes          String?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-
-  clubs Club[]
-}
-
 model User {
   id             Int      @id @default(autoincrement())
   telegramId     String?  @unique
@@ -65,6 +56,7 @@ model User {
   transactions     Transaction[] @relation("UserTransactions")
   sentTransactions Transaction[] @relation("SentTransactions")
   balance          Balance?
+  uplineForClubs   Club[]        @relation("ClubUpline")
 }
 
 model Club {
@@ -74,16 +66,16 @@ model Club {
   currency  String   @default("USD")
   calcType  CalcType @default(STANDARD)
   chipValue           Float    @default(1)
-  partnerRakebackPct  Float    @default(0)
-  partnerRebatePct    Float    @default(0)
+  uplineRakebackPct   Float    @default(0)
+  uplineRebatePct     Float    @default(0)
   rebateOnRakeback    Boolean  @default(false)
   rebateOn100Rake     Boolean  @default(false)
-  logoUrl   String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  partnerId Int?
+  logoUrl      String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  uplineUserId Int?
 
-  partner       Partner?       @relation(fields: [partnerId], references: [id])
+  uplineUser    User?          @relation("ClubUpline", fields: [uplineUserId], references: [id])
   deals         Deal[]
   weeklyReports WeeklyReport[]
 }

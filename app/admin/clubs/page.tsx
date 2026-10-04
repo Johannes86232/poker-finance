@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useRef } from "react"
 
-interface Partner { id: number; name: string }
+interface User { id: number; name: string }
 interface Club {
   id: number; name: string; app: string | null; currency: string
   calcType: string; chipValue: number; isActive: boolean
-  partnerId: number | null; partner: Partner | null
-  partnerRakebackPct: number; partnerRebatePct: number
+  uplineUserId: number | null; uplineUser: User | null
+  uplineRakebackPct: number; uplineRebatePct: number
   rebateOnRakeback: boolean; rebateOn100Rake: boolean
   _count: { deals: number }
 }
@@ -24,13 +24,13 @@ const inp: React.CSSProperties = { width: "100%", padding: "8px 12px", borderRad
 
 const emptyForm = {
   name: "", app: "", currency: "USD", calcType: "STANDARD", chipValue: "1",
-  partnerId: "", partnerRakebackPct: "", partnerRebatePct: "",
+  uplineUserId: "", uplineRakebackPct: "", uplineRebatePct: "",
   rebateOnRakeback: false, rebateOn100Rake: false,
 }
 
 export default function ClubsPage() {
   const [clubs, setClubs] = useState<Club[]>([])
-  const [partners, setPartners] = useState<Partner[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [editClub, setEditClub] = useState<Club | null>(null)
@@ -41,12 +41,12 @@ export default function ClubsPage() {
   useEffect(() => { fetchAll() }, [])
 
   async function fetchAll() {
-    const [c, p] = await Promise.all([
+    const [c, u] = await Promise.all([
       fetch("/api/clubs").then(r => r.json()),
-      fetch("/api/partners").then(r => r.json()),
+      fetch("/api/users").then(r => r.json()),
     ])
     setClubs(Array.isArray(c) ? c : [])
-    setPartners(Array.isArray(p) ? p : [])
+    setUsers(Array.isArray(u) ? u : [])
     setLoading(false)
   }
 
@@ -59,9 +59,10 @@ export default function ClubsPage() {
   function openEdit(club: Club) {
     setForm({
       name: club.name, app: club.app || "", currency: club.currency, calcType: club.calcType,
-      chipValue: String(club.chipValue), partnerId: club.partnerId ? String(club.partnerId) : "",
-      partnerRakebackPct: club.partnerRakebackPct ? String(Math.round(club.partnerRakebackPct * 100)) : "",
-      partnerRebatePct: club.partnerRebatePct ? String(Math.round(club.partnerRebatePct * 100)) : "",
+      chipValue: String(club.chipValue),
+      uplineUserId: club.uplineUserId ? String(club.uplineUserId) : "",
+      uplineRakebackPct: club.uplineRakebackPct ? String(Math.round(club.uplineRakebackPct * 100)) : "",
+      uplineRebatePct: club.uplineRebatePct ? String(Math.round(club.uplineRebatePct * 100)) : "",
       rebateOnRakeback: club.rebateOnRakeback ?? false,
       rebateOn100Rake: club.rebateOn100Rake ?? false,
     })
@@ -72,11 +73,7 @@ export default function ClubsPage() {
   async function submitCreate() {
     const res = await fetch("/api/clubs", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        chipValue: parseFloat(form.chipValue) || 1,
-        partnerId: form.partnerId ? parseInt(form.partnerId) : null,
-      }),
+      body: JSON.stringify({ ...form, chipValue: parseFloat(form.chipValue) || 1, uplineUserId: form.uplineUserId ? parseInt(form.uplineUserId) : null }),
     })
     if (res.ok) { setShowCreate(false); fetchAll() }
     else { const err = await res.json(); alert("Error: " + (err.error || "unknown")) }
@@ -86,11 +83,7 @@ export default function ClubsPage() {
     if (!editClub) return
     const res = await fetch("/api/clubs", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: editClub.id, ...form,
-        chipValue: parseFloat(form.chipValue) || 1,
-        partnerId: form.partnerId ? parseInt(form.partnerId) : null,
-      }),
+      body: JSON.stringify({ id: editClub.id, ...form, chipValue: parseFloat(form.chipValue) || 1, uplineUserId: form.uplineUserId ? parseInt(form.uplineUserId) : null }),
     })
     if (res.ok) { setEditClub(null); fetchAll() }
     else { const err = await res.json(); alert("Error: " + (err.error || "unknown")) }
@@ -104,7 +97,7 @@ export default function ClubsPage() {
   const filtered = clubs.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     (c.app || "").toLowerCase().includes(search.toLowerCase()) ||
-    (c.partner?.name || "").toLowerCase().includes(search.toLowerCase())
+    (c.uplineUser?.name || "").toLowerCase().includes(search.toLowerCase())
   )
 
   const label = (text: string) => <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#9ca3af" }}>{text}</label>
@@ -115,15 +108,9 @@ export default function ClubsPage() {
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 6, border: "1px solid #374151", background: "#1f2937" }}>
         <div
           onClick={() => setForm(p => ({ ...p, [field]: !p[field] }))}
-          style={{
-            width: 36, height: 20, borderRadius: 10, cursor: "pointer", position: "relative", flexShrink: 0,
-            background: on ? "#6366f1" : "#374151", transition: "background 0.2s"
-          }}
+          style={{ width: 36, height: 20, borderRadius: 10, cursor: "pointer", position: "relative", flexShrink: 0, background: on ? "#6366f1" : "#374151", transition: "background 0.2s" }}
         >
-          <div style={{
-            position: "absolute", top: 2, left: on ? 18 : 2, width: 16, height: 16,
-            borderRadius: "50%", background: "#fff", transition: "left 0.2s"
-          }} />
+          <div style={{ position: "absolute", top: 2, left: on ? 18 : 2, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s" }} />
         </div>
         <span style={{ fontSize: 13, color: on ? "#f9fafb" : "#9ca3af" }}>{lbl}</span>
       </div>
@@ -154,22 +141,22 @@ export default function ClubsPage() {
         <input style={inp} value={form.chipValue} onChange={e => setForm(p => ({ ...p, chipValue: e.target.value }))} />
       </div>
       <div>
-        {label("Partner (Upline)")}
-        <select style={inp} value={form.partnerId} onChange={e => setForm(p => ({ ...p, partnerId: e.target.value }))}>
-          <option value="">-- no partner --</option>
-          {partners.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+        {label("Upline (User)")}
+        <select style={inp} value={form.uplineUserId} onChange={e => setForm(p => ({ ...p, uplineUserId: e.target.value }))}>
+          <option value="">— no upline —</option>
+          {users.map(u => <option key={u.id} value={String(u.id)}>{u.name}</option>)}
         </select>
       </div>
       <div>
-        {label("Partner RB % (e.g. 70)")}
-        <input style={inp} value={form.partnerRakebackPct} onChange={e => setForm(p => ({ ...p, partnerRakebackPct: e.target.value }))} />
+        {label("Upline RB % (z.B. 70)")}
+        <input style={inp} value={form.uplineRakebackPct} onChange={e => setForm(p => ({ ...p, uplineRakebackPct: e.target.value }))} />
       </div>
       <div>
-        {label("Partner Rebate % (e.g. 0)")}
-        <input style={inp} value={form.partnerRebatePct} onChange={e => setForm(p => ({ ...p, partnerRebatePct: e.target.value }))} />
+        {label("Upline Rebate % (z.B. 0)")}
+        <input style={inp} value={form.uplineRebatePct} onChange={e => setForm(p => ({ ...p, uplineRebatePct: e.target.value }))} />
       </div>
       <div style={{ gridColumn: "1 / -1" }}>
-        {label("Rebate Calculation")}
+        {label("Rebate Berechnung")}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 4 }}>
           <Toggle field="rebateOnRakeback" label="Rebate on Rakeback" />
           <Toggle field="rebateOn100Rake" label="Rebate on 100% Rake" />
@@ -200,7 +187,7 @@ export default function ClubsPage() {
         </div>
 
         <div className="card" style={{ marginBottom: 16, padding: "12px 16px" }}>
-          <input style={{ ...inp, margin: 0 }} placeholder="Search clubs, app, partner..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input style={{ ...inp, margin: 0 }} placeholder="Search clubs, app, upline..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
         {loading ? <p>Loading...</p> : (
@@ -208,8 +195,8 @@ export default function ClubsPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Name</th><th>App</th><th>Currency</th><th>Partner</th>
-                  <th>Partner RB%</th><th>Rebate Calc</th><th>Deals</th><th>Status</th><th>Actions</th>
+                  <th>Name</th><th>App</th><th>Currency</th><th>Upline</th>
+                  <th>Upline RB%</th><th>Rebate Calc</th><th>Deals</th><th>Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -221,8 +208,8 @@ export default function ClubsPage() {
                       : <span style={{ color: "var(--text-tertiary)" }}>—</span>}
                     </td>
                     <td>{club.currency}</td>
-                    <td>{club.partner?.name || "—"}</td>
-                    <td>{club.partnerRakebackPct ? `${Math.round(club.partnerRakebackPct * 100)}%` : "—"}</td>
+                    <td>{club.uplineUser?.name || "—"}</td>
+                    <td>{club.uplineRakebackPct ? `${Math.round(club.uplineRakebackPct * 100)}%` : "—"}</td>
                     <td style={{ fontSize: 11 }}>
                       {club.rebateOnRakeback && <div style={{ color: "var(--accent)" }}>on RB</div>}
                       {club.rebateOn100Rake && <div style={{ color: "var(--amber)" }}>on 100% rake</div>}

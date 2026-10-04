@@ -138,19 +138,19 @@ export default function ImportPage() {
           <div style={{ marginTop: "14px", background: "var(--bg-base)", borderRadius: "var(--radius-md)", padding: "12px 16px", fontSize: "12px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
               <div>
-                <div style={{ color: "var(--text-tertiary)", marginBottom: "3px" }}>Partner</div>
-                <div style={{ fontWeight: 500 }}>{selectedClub.partner?.name || "—"}</div>
+                <div style={{ color: "var(--text-tertiary)", marginBottom: "3px" }}>Upline</div>
+                <div style={{ fontWeight: 500 }}>{selectedClub.uplineUser?.name || "—"}</div>
               </div>
               <div>
                 <div style={{ color: "var(--text-tertiary)", marginBottom: "3px" }}>Rakeback Deal</div>
-                <div style={{ fontWeight: 600, color: selectedClub.partnerRakebackPct > 0 ? "var(--amber)" : "var(--text-secondary)" }}>
-                  {selectedClub.partnerRakebackPct > 0 ? `${Math.round(selectedClub.partnerRakebackPct * 100)}%` : "—"}
+                <div style={{ fontWeight: 600, color: selectedClub.uplineRakebackPct > 0 ? "var(--amber)" : "var(--text-secondary)" }}>
+                  {selectedClub.uplineRakebackPct > 0 ? `${Math.round(selectedClub.uplineRakebackPct * 100)}%` : "—"}
                 </div>
               </div>
               <div>
                 <div style={{ color: "var(--text-tertiary)", marginBottom: "3px" }}>Rebate %</div>
                 <div style={{ fontWeight: 500 }}>
-                  {selectedClub.partnerRebatePct > 0 ? `${Math.round(selectedClub.partnerRebatePct * 100)}%` : "—"}
+                  {selectedClub.uplineRebatePct > 0 ? `${Math.round(selectedClub.uplineRebatePct * 100)}%` : "—"}
                 </div>
               </div>
             </div>

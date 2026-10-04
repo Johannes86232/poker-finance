@@ -28,7 +28,7 @@ export async function GET() {
     const usersWithBalance = users.map((u: any) => {
       const weeklyTotal = u.accounts.reduce((sum: number, acc: any) => {
         const deal = acc.deals?.[0]
-        const clubRbPct = deal?.club?.partnerRakebackPct ?? 0
+        const clubRbPct = deal?.club?.uplineRakebackPct ?? 0
         acc.weeklyReports.forEach((r: any) => {
           uplineOwes += (r.rake ?? 0) * clubRbPct
         })
