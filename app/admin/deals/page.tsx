@@ -15,11 +15,7 @@ type Deal = {
   club: { id: number; name: string; currency: string; app: string | null }
 }
 
-type Account = {
-  id: number
-  nickname: string
-  user: { id: number; name: string }
-}
+type User = { id: number; name: string }
 
 type Club = { id: number; name: string; currency: string }
 
@@ -27,7 +23,7 @@ const emptyForm = { userId: "", clubId: "", rakebackPct: "50", rebatePct: "0" }
 
 export default function DealsPage() {
   const [deals, setDeals] = useState<Deal[]>([])
-  const [accounts, setAccounts] = useState<Account[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [clubs, setClubs] = useState<Club[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -38,16 +34,16 @@ export default function DealsPage() {
 
 const fetchAll = async () => {
     setLoading(true)
-    const [dealRes, accRes, clubRes] = await Promise.all([
+    const [dealRes, userRes, clubRes] = await Promise.all([
       fetch("/api/deals"),
-      fetch("/api/accounts"),
+      fetch("/api/users"),
       fetch("/api/clubs"),
     ])
     const dealData = await dealRes.json()
-    const accData = await accRes.json()
+    const userData = await userRes.json()
     const clubData = await clubRes.json()
     setDeals(Array.isArray(dealData) ? dealData : [])
-    setAccounts(Array.isArray(accData) ? accData : [])
+    setUsers(Array.isArray(userData) ? userData : [])
     setClubs(Array.isArray(clubData) ? clubData : [])
     setLoading(false)
   }
@@ -101,11 +97,6 @@ const fetchAll = async () => {
     await fetchAll()
   }
 
-  // Unique users from accounts list
-  const uniqueUsers = Array.from(
-    new Map(accounts.map(a => [a.user.id, a.user])).values()
-  )
-
   const filtered = deals.filter(d =>
     d.account.nickname.toLowerCase().includes(search.toLowerCase()) ||
     d.account.user.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -136,7 +127,7 @@ const fetchAll = async () => {
               <select className="form-select" value={form.userId}
                 onChange={e => setForm({ ...form, userId: e.target.value })}>
                 <option value="">Select user...</option>
-                {uniqueUsers.map(u => (
+                {users.map(u => (
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
