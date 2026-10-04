@@ -7,8 +7,6 @@ type Account = {
   app: string | null
   nickname: string
   accountId: string | null
-  superagent: string | null
-  agent: string | null
   isActive: boolean
   user: { id: number; name: string; telegramHandle: string | null }
   deals: { rakebackPct: number; rebatePct: number; club: { name: string; currency: string } }[]
@@ -17,7 +15,7 @@ type Account = {
 type User = { id: number; name: string }
 
 const POKER_APPS = ["ClubGG", "Pokerbros", "X-Poker", "Kingspoker", "Pokership", "Other"]
-const emptyForm = { userId: "", app: "", nickname: "", accountId: "", superagent: "", agent: "" }
+const emptyForm = { userId: "", app: "", nickname: "", accountId: "" }
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -109,7 +107,7 @@ export default function AccountsPage() {
           <div style={{ fontSize: 11, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             New Account
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">User *</label>
               <select className="form-select" value={form.userId}
@@ -136,16 +134,6 @@ export default function AccountsPage() {
               <input className="form-input" placeholder="Platform account ID" value={form.accountId}
                 onChange={e => setForm({ ...form, accountId: e.target.value })} />
             </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Superagent</label>
-              <input className="form-input" placeholder="Optional" value={form.superagent}
-                onChange={e => setForm({ ...form, superagent: e.target.value })} />
-            </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Agent</label>
-              <input className="form-input" placeholder="Optional" value={form.agent}
-                onChange={e => setForm({ ...form, agent: e.target.value })} />
-            </div>
           </div>
           {error && <div style={{ marginTop: 10, fontSize: 12, color: "var(--red)" }}>{error}</div>}
           <div style={{ marginTop: 14 }}>
@@ -161,7 +149,7 @@ export default function AccountsPage() {
             position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
             display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100
           }}>
-            <div className="card" style={{ width: 480 }}>
+            <div className="card" style={{ width: 440 }}>
               <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Edit Account</div>
               <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 14 }}>
                 {editAccount.user.name}
@@ -183,16 +171,6 @@ export default function AccountsPage() {
                 <label className="form-label">Account ID</label>
                 <input className="form-input" value={editAccount.accountId || ""}
                   onChange={e => setEditAccount({ ...editAccount, accountId: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Superagent</label>
-                <input className="form-input" value={editAccount.superagent || ""}
-                  onChange={e => setEditAccount({ ...editAccount, superagent: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Agent</label>
-                <input className="form-input" value={editAccount.agent || ""}
-                  onChange={e => setEditAccount({ ...editAccount, agent: e.target.value })} />
               </div>
               {error && <div style={{ fontSize: 12, color: "var(--red)", marginBottom: 10 }}>{error}</div>}
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -220,7 +198,6 @@ export default function AccountsPage() {
                 <th>App</th>
                 <th>Nickname</th>
                 <th>Account ID</th>
-                <th>Superagent</th>
                 <th>Clubs / Deals</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -228,9 +205,9 @@ export default function AccountsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={8} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>Loading...</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>Loading...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>No accounts found</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>No accounts found</td></tr>
               ) : filtered.map(acc => (
                 <tr key={acc.id}>
                   <td>
@@ -252,9 +229,6 @@ export default function AccountsPage() {
                   <td style={{ color: "var(--text-primary)", fontWeight: 500 }}>{acc.nickname}</td>
                   <td style={{ fontFamily: "monospace", fontSize: 11, color: "var(--text-secondary)" }}>
                     {acc.accountId || <span style={{ color: "var(--text-tertiary)" }}>—</span>}
-                  </td>
-                  <td style={{ color: "var(--text-secondary)", fontSize: 12 }}>
-                    {acc.superagent || <span style={{ color: "var(--text-tertiary)" }}>—</span>}
                   </td>
                   <td>
                     {acc.deals.length > 0 ? (

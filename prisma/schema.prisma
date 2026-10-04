@@ -81,8 +81,9 @@ model Club {
   createdAt DateTime @default(now())
   partnerId Int?
 
-  partner Partner? @relation(fields: [partnerId], references: [id])
-  deals   Deal[]
+  partner       Partner?       @relation(fields: [partnerId], references: [id])
+  deals         Deal[]
+  weeklyReports WeeklyReport[]
 }
 
 model Account {
@@ -133,6 +134,7 @@ model WeeklyReport {
   id             Int      @id @default(autoincrement())
   accountId      Int
   weekId         Int
+  clubId         Int?
   result         Float    @default(0)
   rake           Float    @default(0)
   bbj            Float    @default(0)
@@ -141,9 +143,11 @@ model WeeklyReport {
   netResult      Float    @default(0)
   exchangeRate   Float    @default(1)
   importedAt     DateTime @default(now())
+  importFile     String?
 
   account Account @relation(fields: [accountId], references: [id])
   week    Week    @relation(fields: [weekId], references: [id])
+  club    Club?   @relation(fields: [clubId], references: [id])
 
   @@unique([accountId, weekId])
 }

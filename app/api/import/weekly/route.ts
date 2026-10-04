@@ -113,8 +113,8 @@ export async function POST(req: NextRequest) {
       try {
         await prisma.weeklyReport.upsert({
           where: { accountId_weekId: { accountId: account.id, weekId: week.id } },
-          update: { result: resultUsd, rake: rakeUsd, rakebackAmount, netResult, exchangeRate: xeRate, importedAt: new Date() },
-          create: { accountId: account.id, weekId: week.id, result: resultUsd, rake: rakeUsd, rakebackAmount, netResult, exchangeRate: xeRate, importedAt: new Date() }
+          update: { result: resultUsd, rake: rakeUsd, rakebackAmount, netResult, exchangeRate: xeRate, importedAt: new Date(), clubId, importFile: file.name },
+          create: { accountId: account.id, weekId: week.id, clubId, result: resultUsd, rake: rakeUsd, rakebackAmount, netResult, exchangeRate: xeRate, importedAt: new Date(), importFile: file.name }
         })
         results.imported++
       } catch (e: any) {

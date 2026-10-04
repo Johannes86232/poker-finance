@@ -12,14 +12,12 @@ const nav = [
       { label: "Clubs", href: "/admin/clubs", icon: "ti-building" },
       { label: "Accounts", href: "/admin/accounts", icon: "ti-id-badge" },
       { label: "Deals", href: "/admin/deals", icon: "ti-file-invoice" },
-      { label: "Partners", href: "/admin/partners", icon: "ti-handshake" },
     ],
   },
   {
     section: "Finance",
     items: [
       { label: "Transactions", href: "/admin/transactions", icon: "ti-arrows-exchange" },
-      { label: "Weekly", href: "/admin/weeks", icon: "ti-calendar-week" },
       { label: "Import Reports", href: "/admin/import", icon: "ti-upload" },
       { label: "FX Rates", href: "/admin/exchange-rates", icon: "ti-currency-dollar" },
     ],
