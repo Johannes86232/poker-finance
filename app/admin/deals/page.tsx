@@ -19,7 +19,6 @@ type Account = {
   id: number
   nickname: string
   user: { name: string }
-  club: { name: string }
 }
 
 type Club = { id: number; name: string; currency: string }
@@ -134,7 +133,7 @@ const fetchAll = async () => {
                 <option value="">Select account...</option>
                 {accounts.map(a => (
                   <option key={a.id} value={a.id}>
-                  {a.user.name}
+                    {a.user.name} — {a.nickname}
                   </option>
                 ))}
               </select>

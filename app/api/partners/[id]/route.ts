@@ -1,18 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { NextResponse } from "next/server"
 
-export async function PATCH(req: NextRequest, { params }: { params: any }) {
-  const id = parseInt((await params).id)
-  const body = await req.json()
-  const partner = await prisma.partner.update({
-    where: { id },
-    data: { name: body.name, telegramHandle: body.telegramHandle ?? null, notes: body.notes ?? null, isActive: body.isActive ?? true }
-  })
-  return NextResponse.json(partner)
-}
-
-export async function DELETE(_: NextRequest, { params }: { params: any }) {
-  const id = parseInt((await params).id)
-  await prisma.partner.delete({ where: { id } })
-  return NextResponse.json({ ok: true })
+// Partners have been merged into Users. This endpoint is deprecated.
+export async function GET() {
+  return NextResponse.json({ error: "Partners have been removed. Use /api/users instead." }, { status: 410 })
 }
