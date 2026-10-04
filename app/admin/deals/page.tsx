@@ -103,6 +103,47 @@ const fetchAll = async () => {
     d.club.name.toLowerCase().includes(search.toLowerCase())
   )
 
+  // Group deals by user+club: one row per user per club
+  type GroupedDeal = {
+    key: string
+    userId: number
+    userName: string
+    clubId: number
+    clubName: string
+    clubApp: string | null
+    rakebackPct: number
+    rebatePct: number
+    isActive: boolean
+    nicknames: string[]
+    dealIds: number[]
+    deals: Deal[]
+  }
+  const groupedDeals: GroupedDeal[] = Object.values(
+    filtered.reduce((acc, deal) => {
+      const key = `${deal.account.user.id}-${deal.club.id}`
+      if (!acc[key]) {
+        acc[key] = {
+          key,
+          userId: deal.account.user.id,
+          userName: deal.account.user.name,
+          clubId: deal.club.id,
+          clubName: deal.club.name,
+          clubApp: deal.club.app,
+          rakebackPct: deal.rakebackPct,
+          rebatePct: deal.rebatePct,
+          isActive: deal.isActive,
+          nicknames: [],
+          dealIds: [],
+          deals: [],
+        }
+      }
+      acc[key].nicknames.push(deal.account.nickname)
+      acc[key].dealIds.push(deal.id)
+      acc[key].deals.push(deal)
+      return acc
+    }, {} as Record<string, GroupedDeal>)
+  )
+
   return (
     <>
       <div className="topbar">
@@ -208,7 +249,7 @@ const fetchAll = async () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Account</th>
+                <th>User</th>
                 <th>Club</th>
                 <th>Rakeback %</th>
                 <th>Rebate %</th>
@@ -220,41 +261,44 @@ const fetchAll = async () => {
             <tbody>
               {loading ? (
                 <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>Loading...</td></tr>
-              ) : filtered.length === 0 ? (
+              ) : groupedDeals.length === 0 ? (
                 <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>No deals found</td></tr>
-              ) : filtered.map(deal => (
-                <tr key={deal.id}>
+              ) : groupedDeals.map(group => (
+                <tr key={group.key}>
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div className="avatar" style={{ fontSize: 9 }}>{deal.account.user.name[0]}</div>
+                      <div className="avatar" style={{ fontSize: 9 }}>{group.userName[0]}</div>
                       <div>
-                        <div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{deal.account.user.name}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{deal.account.nickname}</div>
+                        <div style={{ color: "var(--text-primary)", fontWeight: 500 }}>{group.userName}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{group.nicknames.join(", ")}</div>
                       </div>
                     </div>
                   </td>
                   <td>
-                    <div style={{ color: "var(--text-secondary)" }}>{deal.club.name}</div>
-                    {deal.club.app && <span className="badge badge-accent" style={{ fontSize: 9 }}>{deal.club.app}</span>}
+                    <div style={{ color: "var(--text-secondary)" }}>{group.clubName}</div>
+                    {group.clubApp && <span className="badge badge-accent" style={{ fontSize: 9 }}>{group.clubApp}</span>}
                   </td>
-                  <td><span className="val-pos">{(deal.rakebackPct * 100).toFixed(1)}%</span></td>
-                  <td><span style={{ color: "var(--amber)" }}>{(deal.rebatePct * 100).toFixed(1)}%</span></td>
+                  <td><span className="val-pos">{(group.rakebackPct * 100).toFixed(1)}%</span></td>
+                  <td><span style={{ color: "var(--amber)" }}>{(group.rebatePct * 100).toFixed(1)}%</span></td>
                   <td>
-                    <span className="val-pos">{((deal.rakebackPct + deal.rebatePct) * 100).toFixed(1)}%</span>
+                    <span className="val-pos">{((group.rakebackPct + group.rebatePct) * 100).toFixed(1)}%</span>
                   </td>
                   <td>
-                    <span className={`badge ${deal.isActive ? "badge-active" : "badge-inactive"}`}>
-                      {deal.isActive ? "Active" : "Inactive"}
+                    <span className={`badge ${group.isActive ? "badge-active" : "badge-inactive"}`}>
+                      {group.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button className="btn" onClick={() => { setEditDeal(deal); setError("") }}>Edit</button>
-                      <button className={`btn ${deal.isActive ? "btn-warning" : "btn-success"}`}
-                        onClick={() => handleToggle(deal)}>
-                        {deal.isActive ? "Deactivate" : "Activate"}
+                      <button className="btn" onClick={() => { setEditDeal(group.deals[0]); setError("") }}>Edit</button>
+                      <button className={`btn ${group.isActive ? "btn-warning" : "btn-success"}`}
+                        onClick={() => group.deals.forEach(d => handleToggle(d))}>
+                        {group.isActive ? "Deactivate" : "Activate"}
                       </button>
-                      <button className="btn btn-danger" onClick={() => handleDelete(deal.id)}>Delete</button>
+                      <button className="btn btn-danger"
+                        onClick={() => { if (confirm("Delete all deals for this user in this club?")) group.dealIds.forEach(id => handleDelete(id)) }}>
+                        Delete
+                      </button>
                     </div>
                   </td>
                 </tr>
