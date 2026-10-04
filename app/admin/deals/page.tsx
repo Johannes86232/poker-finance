@@ -133,7 +133,7 @@ const fetchAll = async () => {
                 <option value="">Select account...</option>
                 {accounts.map(a => (
                   <option key={a.id} value={a.id}>
-                    {a.user.name} — {a.nickname}
+                    {a.user.name}{a.nickname ? ` — ${a.nickname}` : ` (#${a.id})`}
                   </option>
                 ))}
               </select>
