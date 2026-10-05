@@ -255,16 +255,15 @@ const fetchAll = async () => {
                 <th>Club</th>
                 <th>Rakeback %</th>
                 <th>Rebate %</th>
-                <th>Net Deal</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>Loading...</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>Loading...</td></tr>
               ) : groupedDeals.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>No deals found</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>No deals found</td></tr>
               ) : groupedDeals.map(group => (
                 <tr key={group.key}>
                   <td>
@@ -282,9 +281,6 @@ const fetchAll = async () => {
                   </td>
                   <td><span className="val-pos">{(group.rakebackPct * 100).toFixed(1)}%</span></td>
                   <td><span style={{ color: "var(--amber)" }}>{(group.rebatePct * 100).toFixed(1)}%</span></td>
-                  <td>
-                    <span className="val-pos">{((group.rakebackPct + group.rebatePct) * 100).toFixed(1)}%</span>
-                  </td>
                   <td>
                     <span className={`badge ${group.isActive ? "badge-active" : "badge-inactive"}`}>
                       {group.isActive ? "Active" : "Inactive"}
