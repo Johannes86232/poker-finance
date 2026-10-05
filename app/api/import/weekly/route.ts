@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
       piaId: string; screenName: string
       resultUsd: number; rakeUsd: number; xeRate: number
       accountId: number; rakebackPct: number; rebatePct: number
+      rebateOnRakeback: boolean; rebateOn100Rake: boolean
     }
     const resolved: RowData[] = []
     const missingDeals: string[] = []
@@ -120,6 +121,8 @@ export async function POST(req: NextRequest) {
         accountId: account.id,
         rakebackPct: deal.rakebackPct ?? 0,
         rebatePct: deal.rebatePct ?? 0,
+        rebateOnRakeback: club.rebateOnRakeback,
+        rebateOn100Rake: club.rebateOn100Rake,
       })
     }
 
@@ -138,11 +141,21 @@ export async function POST(req: NextRequest) {
 
     for (const row of resolved) {
       const rakebackAmount = row.rakeUsd * row.rakebackPct
-      // netResult = what we owe the player (or they owe us if negative)
-      // Rebate is a % the player pays back on their net position
-      const grossResult = row.resultUsd + rakebackAmount
-      const rebateAmount = grossResult * row.rebatePct
-      const netResult = grossResult - rebateAmount
+
+      // Rebate base depends on club setting:
+      // rebateOnRakeback: rebate on (result + rakeback)  → standard
+      // rebateOn100Rake:  rebate on (result + 100% rake) → exception
+      let rebateAmount = 0
+      if (row.rebateOn100Rake) {
+        // Basis = result + full rake (regardless of rakeback%)
+        rebateAmount = (row.resultUsd + row.rakeUsd) * row.rebatePct
+      } else if (row.rebateOnRakeback) {
+        // Basis = result + rakeback actually paid out
+        rebateAmount = (row.resultUsd + rakebackAmount) * row.rebatePct
+      }
+
+      // netResult = what we owe the player (positive = we pay them)
+      const netResult = row.resultUsd + rakebackAmount - rebateAmount
 
       try {
         await prisma.weeklyReport.upsert({
