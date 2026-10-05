@@ -37,26 +37,21 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     })
 
-    let uplineOwes = 0
-
     const usersWithBalance = users.map((u: any) => {
       // Balance from own accounts (downline players)
       const weeklyTotal = u.accounts.reduce((sum: number, acc: any) => {
-        const deal = acc.deals?.[0]
-        const clubRbPct = deal?.club?.uplineRakebackPct ?? 0
-        acc.weeklyReports.forEach((r: any) => {
-          uplineOwes += (r.rake ?? 0) * clubRbPct
-        })
         return sum + acc.weeklyReports.reduce((s: number, r: any) => s + (r.netResult ?? 0), 0)
       }, 0)
 
-      // Balance from being an upline: sum of (result + rake * uplineRakebackPct) across all accounts in clubs where this user is upline
+      // Balance from being an upline: negative = upline owes us
+      // When players win (positive result), the upline owes us that money → their balance is negative
+      // Formula: -(result + rake * uplineRakebackPct) so that when players win, Angelo has a negative balance
       const uplineBalance = u.uplineForClubs.reduce((clubSum: number, club: any) => {
         const rbPct = club.uplineRakebackPct ?? 0
         return clubSum + club.deals.reduce((dealSum: number, deal: any) => {
           return dealSum + deal.account.weeklyReports.reduce((rSum: number, r: any) => {
-            // Upline owes us: result (players winning = upline pays) + rake share
-            return rSum + (r.result ?? 0) + (r.rake ?? 0) * rbPct
+            // Negate: upline owes us when players win → negative balance means they owe us
+            return rSum - ((r.result ?? 0) + (r.rake ?? 0) * rbPct)
           }, 0)
         }, 0)
       }, 0)
@@ -74,12 +69,19 @@ export async function GET() {
 
     const totalUsd = usersWithBalance.reduce((s: number, u: any) => s + u.balance.amountUsd, 0)
 
-    const downlineOwes = usersWithBalance.reduce((s: number, u: any) => {
+    // weAreOwed: sum of negative balances (these people owe us money)
+    const weAreOwed = usersWithBalance.reduce((s: number, u: any) => {
       const bal = u.balance.amountUsd
       return s + (bal < 0 ? Math.abs(bal) : 0)
     }, 0)
 
-    const netProfit = downlineOwes - uplineOwes
+    // weOwe: sum of positive balances (we owe these people money)
+    const weOwe = usersWithBalance.reduce((s: number, u: any) => {
+      const bal = u.balance.amountUsd
+      return s + (bal > 0 ? bal : 0)
+    }, 0)
+
+    const netProfit = weAreOwed - weOwe
 
     const activeClubs = await prisma.club.count({ where: { isActive: true } })
     const activeAccounts = await prisma.account.count({ where: { isActive: true } })
@@ -87,7 +89,7 @@ export async function GET() {
     return NextResponse.json({
       users: usersWithBalance, totalUsd, totalEur: 0,
       activeClubs, activeAccounts,
-      downlineOwes, uplineOwes, netProfit,
+      weAreOwed, weOwe, netProfit,
     })
   } catch (error) {
     console.error("Dashboard error:", error)

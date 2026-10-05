@@ -13,7 +13,7 @@ type DashboardData = {
   users: User[]
   totalUsd: number; totalEur: number
   activeClubs: number; activeAccounts: number
-  downlineOwes: number; uplineOwes: number; netProfit: number
+  weAreOwed: number; weOwe: number; netProfit: number
 }
 
 const fmt = (n: number) =>
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
           <div className="card" style={{ textAlign: "center" }}>
             <div className="kpi-label" style={{ marginBottom: 6 }}>We are owed</div>
             <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-1px", color: "var(--red)" }}>
-              {loading ? "-" : `${fmt(data?.downlineOwes ?? 0)} USD`}
+              {loading ? "-" : `${fmt(data?.weAreOwed ?? 0)} USD`}
             </div>
             <div style={{ fontSize: 10, color: "var(--text-tertiary)", marginTop: 4 }}>
               {debtors} players in debt
@@ -69,7 +69,7 @@ export default function AdminDashboard() {
           <div className="card" style={{ textAlign: "center" }}>
             <div className="kpi-label" style={{ marginBottom: 6 }}>We owe</div>
             <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-1px", color: "var(--amber)" }}>
-              {loading ? "-" : `${fmt(data?.uplineOwes ?? 0)} USD`}
+              {loading ? "-" : `${fmt(data?.weOwe ?? 0)} USD`}
             </div>
             <div style={{ fontSize: 10, color: "var(--text-tertiary)", marginTop: 4 }}>
               club rakeback share
