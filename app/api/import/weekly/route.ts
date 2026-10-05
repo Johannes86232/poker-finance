@@ -59,12 +59,21 @@ export async function POST(req: NextRequest) {
       create: { year, weekNum, label: `KW${weekNum} ${year}` }
     })
 
-    const results = { imported: 0, skipped: 0, errors: [] as string[] }
     const dataRows = allRows.slice(dataStartRow).filter((row: any[]) => {
       const id = colPlayerId >= 0 ? String(row[colPlayerId] ?? "").trim() : ""
       const name = colPlayerScreen >= 0 ? String(row[colPlayerScreen] ?? "").trim() : ""
       return id !== "" || name !== ""
     })
+
+    // Pre-flight: resolve all accounts and check for missing deals BEFORE importing anything
+    type RowData = {
+      piaId: string; screenName: string
+      resultUsd: number; rakeUsd: number; xeRate: number
+      accountId: number; rakebackPct: number
+    }
+    const resolved: RowData[] = []
+    const missingDeals: string[] = []
+    const missingAccounts: string[] = []
 
     for (const row of dataRows) {
       const piaId = colPlayerId >= 0 ? String(row[colPlayerId] ?? "").trim() : ""
@@ -73,54 +82,79 @@ export async function POST(req: NextRequest) {
       const rake = colRake >= 0 ? parseFloat(String(row[colRake] ?? "0").replace(/[^0-9.-]/g, "")) || 0 : 0
       const xeRate = colXeRate >= 0 ? parseFloat(String(row[colXeRate] ?? "1").replace(/[^0-9.-]/g, "")) || 1 : 1
 
-      const resultUsd = resultRaw * xeRate
-      const rakeUsd = rake * xeRate
-
       let account = null
       if (piaId) {
-        account = await prisma.account.findFirst({
-          where: { accountId: piaId, isActive: true },
-        })
+        account = await prisma.account.findFirst({ where: { accountId: piaId, isActive: true } })
       }
       if (!account && screenName) {
-        account = await prisma.account.findFirst({
-          where: { nickname: { equals: screenName, mode: "insensitive" }, isActive: true },
-        })
+        account = await prisma.account.findFirst({ where: { nickname: { equals: screenName, mode: "insensitive" }, isActive: true } })
       }
 
       if (!account) {
-        results.skipped++
-        results.errors.push(`No account for: "${screenName || piaId}"`)
+        missingAccounts.push(`"${screenName || piaId}"`)
         continue
       }
 
-      // Ensure Deal exists linking account to this club
-      let deal = await prisma.deal.findFirst({
+      const deal = await prisma.deal.findFirst({
         where: { accountId: account.id, clubId: clubId, isActive: true }
       })
+
       if (!deal) {
-        deal = await prisma.deal.create({
-          data: { accountId: account.id, clubId: clubId, isActive: true }
+        // Find user name for a helpful error message
+        const fullAccount = await prisma.account.findUnique({
+          where: { id: account.id },
+          include: { user: { select: { name: true } } }
         })
+        const label = fullAccount?.user?.name
+          ? `${fullAccount.user.name} (${screenName || piaId})`
+          : `${screenName || piaId}`
+        missingDeals.push(label)
+        continue
       }
 
-      // Player rakeback: what we pay the player (deal.rakebackPct stored as decimal e.g. 0.60)
-      const rakebackPct = deal.rakebackPct ?? 0
-      const rakebackAmount = rakeUsd * rakebackPct
-      // netResult = what player owes us (result + rakeback they receive)
-      const netResult = resultUsd + rakebackAmount
+      resolved.push({
+        piaId, screenName,
+        resultUsd: resultRaw * xeRate,
+        rakeUsd: rake * xeRate,
+        xeRate,
+        accountId: account.id,
+        rakebackPct: deal.rakebackPct ?? 0,
+      })
+    }
+
+    // Block import if any deals are missing — don't silently create 0% deals
+    if (missingDeals.length > 0) {
+      return NextResponse.json({
+        error: "Import blocked: missing player deals",
+        missingDeals,
+        missingAccounts,
+        message: `Please create deals for these players in this club first: ${missingDeals.join(", ")}`,
+      }, { status: 422 })
+    }
+
+    // All clear — import
+    const results = { imported: 0, skipped: 0, errors: [] as string[], missingAccounts }
+
+    for (const row of resolved) {
+      const rakebackAmount = row.rakeUsd * row.rakebackPct
+      const netResult = row.resultUsd + rakebackAmount
 
       try {
         await prisma.weeklyReport.upsert({
-          where: { accountId_weekId: { accountId: account.id, weekId: week.id } },
-          update: { result: resultUsd, rake: rakeUsd, rakebackAmount, netResult, exchangeRate: xeRate, importedAt: new Date(), clubId, importFile: file.name },
-          create: { accountId: account.id, weekId: week.id, clubId, result: resultUsd, rake: rakeUsd, rakebackAmount, netResult, exchangeRate: xeRate, importedAt: new Date(), importFile: file.name }
+          where: { accountId_weekId: { accountId: row.accountId, weekId: week.id } },
+          update: { result: row.resultUsd, rake: row.rakeUsd, rakebackAmount, netResult, exchangeRate: row.xeRate, importedAt: new Date(), clubId, importFile: file.name },
+          create: { accountId: row.accountId, weekId: week.id, clubId, result: row.resultUsd, rake: row.rakeUsd, rakebackAmount, netResult, exchangeRate: row.xeRate, importedAt: new Date(), importFile: file.name }
         })
         results.imported++
       } catch (e: any) {
-        results.errors.push(`Error for "${screenName}": ${e.message}`)
+        results.errors.push(`Error for "${row.screenName}": ${e.message}`)
         results.skipped++
       }
+    }
+
+    if (missingAccounts.length > 0) {
+      results.errors.push(...missingAccounts.map(a => `No account found for: ${a}`))
+      results.skipped += missingAccounts.length
     }
 
     return NextResponse.json({ success: true, week: { year, weekNum, id: week.id }, ...results })

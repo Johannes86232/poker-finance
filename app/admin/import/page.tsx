@@ -86,7 +86,7 @@ export default function ImportPage() {
     try {
       const res = await fetch("/api/import/weekly", { method: "POST", body: fd })
       const data = await res.json()
-      if (!res.ok) setError(data.error || "Error")
+      if (!res.ok) { setResult(data); setError(data.error || "Error") }
       else { setResult(data); fetchWeeks() }
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
@@ -213,9 +213,32 @@ export default function ImportPage() {
           ))}
         </div>
       )}
+      {result?.missingDeals?.length > 0 && (
+        <div style={{ marginTop: "20px", background: "var(--amber-dim, rgba(245,158,11,0.1))", border: "0.5px solid var(--amber)", borderRadius: "var(--radius-lg)", padding: "20px" }}>
+          <p style={{ color: "var(--amber)", fontWeight: 600, marginBottom: "8px" }}>⚠ Skipped — no account matched in system:</p>
+          {result.missingAccounts?.map((a: string, i: number) => (
+            <p key={i} style={{ color: "var(--text-secondary)", fontSize: "12px", marginTop: "3px" }}>• {a}</p>
+          ))}
+        </div>
+      )}
       {error && (
-        <div style={{ marginTop: "20px", background: "var(--red-dim)", border: "0.5px solid var(--red-border)", borderRadius: "var(--radius-lg)", padding: "16px" }}>
-          <p style={{ color: "var(--red)", fontWeight: 500 }}>Error: {error}</p>
+        <div style={{ marginTop: "20px", background: "var(--red-dim)", border: "0.5px solid var(--red-border)", borderRadius: "var(--radius-lg)", padding: "20px" }}>
+          <p style={{ color: "var(--red)", fontWeight: 600, marginBottom: "10px" }}>⛔ Import blockiert: Fehlende Player-Deals</p>
+          <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "12px" }}>
+            Bitte erst Deals für diese Spieler in diesem Club anlegen:
+          </p>
+          {result?.missingDeals?.map((name: string, i: number) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "6px" }}>
+              <span style={{ color: "var(--red)", fontSize: "16px" }}>•</span>
+              <span style={{ fontWeight: 500, fontSize: "13px" }}>{name}</span>
+            </div>
+          ))}
+          {(!result?.missingDeals || result.missingDeals.length === 0) && (
+            <p style={{ color: "var(--red)", fontSize: "13px" }}>{error}</p>
+          )}
+          <div style={{ marginTop: "14px", padding: "10px 14px", background: "rgba(0,0,0,0.2)", borderRadius: "var(--radius-md)", fontSize: "11px", color: "var(--text-tertiary)" }}>
+            → Deals anlegen unter <strong style={{ color: "var(--text-secondary)" }}>Admin → Deals</strong>
+          </div>
         </div>
       )}
 

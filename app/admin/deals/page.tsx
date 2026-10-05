@@ -29,6 +29,8 @@ export default function DealsPage() {
   const [search, setSearch] = useState("")
   const [form, setForm] = useState(emptyForm)
   const [editDeal, setEditDeal] = useState<Deal | null>(null)
+  const [editRb, setEditRb] = useState("")
+  const [editRebate, setEditRebate] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
@@ -73,7 +75,7 @@ const fetchAll = async () => {
     const res = await fetch(`/api/deals/${editDeal.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editDeal),
+      body: JSON.stringify({ rakebackPct: editRb, rebatePct: editRebate }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error); setSaving(false); return }
@@ -217,19 +219,19 @@ const fetchAll = async () => {
                 <div className="form-group">
                   <label className="form-label">Rakeback %</label>
                   <input className="form-input" type="number" step="0.5" min="0" max="100"
-                    value={Math.round(editDeal.rakebackPct * 100)}
-                    onChange={e => setEditDeal({ ...editDeal, rakebackPct: parseFloat(e.target.value) })} />
+                    value={editRb}
+                    onChange={e => setEditRb(e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Rebate %</label>
                   <input className="form-input" type="number" step="0.5" min="0" max="100"
-                    value={Math.round(editDeal.rebatePct * 100)}
-                    onChange={e => setEditDeal({ ...editDeal, rebatePct: parseFloat(e.target.value) })} />
+                    value={editRebate}
+                    onChange={e => setEditRebate(e.target.value)} />
                 </div>
               </div>
               {error && <div style={{ fontSize: 12, color: "var(--red)", marginBottom: 10 }}>{error}</div>}
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button className="btn" onClick={() => { setEditDeal(null); setError("") }}>Cancel</button>
+                <button className="btn" onClick={() => { setEditDeal(null); setEditRb(""); setEditRebate(""); setError("") }}>Cancel</button>
                 <button className="btn btn-accent" onClick={handleEdit} disabled={saving}>
                   {saving ? "Saving..." : "Save"}
                 </button>
@@ -290,7 +292,7 @@ const fetchAll = async () => {
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button className="btn" onClick={() => { setEditDeal(group.deals[0]); setError("") }}>Edit</button>
+                      <button className="btn" onClick={() => { const d = group.deals[0]; setEditDeal(d); setEditRb(String(Math.round(d.rakebackPct * 100))); setEditRebate(String(Math.round(d.rebatePct * 100))); setError("") }}>Edit</button>
                       <button className={`btn ${group.isActive ? "btn-warning" : "btn-success"}`}
                         onClick={() => group.deals.forEach(d => handleToggle(d))}>
                         {group.isActive ? "Deactivate" : "Activate"}
