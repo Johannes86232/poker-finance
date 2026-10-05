@@ -12,6 +12,8 @@ export async function GET() {
           },
         },
         club: { select: { id: true, name: true, currency: true, app: true } },
+        referrer1: { select: { id: true, name: true } },
+        referrer2: { select: { id: true, name: true } },
       },
     })
     return NextResponse.json(deals)
@@ -23,7 +25,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { userId, clubId, rakebackPct, rebatePct } = body
+    const { userId, clubId, rakebackPct, rebatePct,
+            referrer1UserId, referrer1RakebackPct, referrer1RebatePct,
+            referrer2UserId, referrer2RakebackPct, referrer2RebatePct } = body
 
     if (!userId || !clubId) {
       return NextResponse.json({ error: "User and Club are required" }, { status: 400 })
@@ -48,6 +52,12 @@ export async function POST(req: NextRequest) {
             clubId: parseInt(clubId),
             rakebackPct: (parseFloat(rakebackPct) || 0) / 100,
             rebatePct: (parseFloat(rebatePct) || 0) / 100,
+            ...(referrer1UserId && { referrer1UserId: parseInt(referrer1UserId) }),
+            referrer1RakebackPct: (parseFloat(referrer1RakebackPct) || 0) / 100,
+            referrer1RebatePct: (parseFloat(referrer1RebatePct) || 0) / 100,
+            ...(referrer2UserId && { referrer2UserId: parseInt(referrer2UserId) }),
+            referrer2RakebackPct: (parseFloat(referrer2RakebackPct) || 0) / 100,
+            referrer2RebatePct: (parseFloat(referrer2RebatePct) || 0) / 100,
           },
           include: {
             account: { include: { user: { select: { name: true } } } },

@@ -32,7 +32,20 @@ export async function GET() {
               }
             }
           }
-        }
+        },
+        // Deals where this user is referrer1 or referrer2
+        referrer1Deals: {
+          where: { isActive: true },
+          include: {
+            account: { include: { weeklyReports: true } }
+          }
+        },
+        referrer2Deals: {
+          where: { isActive: true },
+          include: {
+            account: { include: { weeklyReports: true } }
+          }
+        },
       },
       orderBy: { createdAt: "asc" },
     })
@@ -75,7 +88,26 @@ export async function GET() {
         return sum
       }, 0)
 
-      const totalBalance = weeklyTotal + uplineBalance + txTotal
+      // Referrer commissions: positive = we owe referrer their cut
+      const calcReferrerBalance = (deals: any[], rbPctField: string, rebatePctField: string) =>
+        deals.reduce((sum: number, deal: any) => {
+          const rbPct = deal[rbPctField] ?? 0
+          const rebatePct = deal[rebatePctField] ?? 0
+          return sum + deal.account.weeklyReports.reduce((s: number, r: any) => {
+            const rake = r.rake ?? 0
+            const result = r.result ?? 0
+            const rbAmount = rake * rbPct
+            const rebateAmount = rebatePct > 0 ? (result + rbAmount) * rebatePct : 0
+            // Referrer earns rbAmount - rebateAmount from us (positive = we owe them)
+            return s + (rbAmount - rebateAmount)
+          }, 0)
+        }, 0)
+
+      const referrerBalance =
+        calcReferrerBalance(u.referrer1Deals, "referrer1RakebackPct", "referrer1RebatePct") +
+        calcReferrerBalance(u.referrer2Deals, "referrer2RakebackPct", "referrer2RebatePct")
+
+      const totalBalance = weeklyTotal + uplineBalance + referrerBalance + txTotal
 
       return { ...u, balance: { amountUsd: totalBalance, amountEur: 0 } }
     })

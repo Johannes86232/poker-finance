@@ -31,6 +31,32 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
 
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
+    // Fetch deals where this user is referrer1 or referrer2
+    const referrer1DealsRaw = await prisma.deal.findMany({
+      where: { referrer1UserId: userId, isActive: true },
+      include: {
+        account: {
+          include: {
+            user: { select: { name: true } },
+            weeklyReports: { include: { week: true } }
+          }
+        },
+        club: { select: { id: true, name: true } }
+      }
+    })
+    const referrer2DealsRaw = await prisma.deal.findMany({
+      where: { referrer2UserId: userId, isActive: true },
+      include: {
+        account: {
+          include: {
+            user: { select: { name: true } },
+            weeklyReports: { include: { week: true } }
+          }
+        },
+        club: { select: { id: true, name: true } }
+      }
+    })
+
     // Also fetch clubs where this user is the upline
     const uplineClubsRaw = await prisma.club.findMany({
       where: { uplineUserId: userId, isActive: true },
@@ -100,7 +126,43 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
     }).filter((c: any) => c.netOwed !== 0 || uplineClubsRaw.length > 0)
 
     const uplineBalance = -uplineClubs.reduce((s: any, c: any) => s + c.netOwed, 0)
-    const balanceUsd = weeklyTotal + uplineBalance + txTotal
+
+    // Referrer commissions: group by player (account user), sum per-week earnings
+    const calcReferrerEarnings = (deals: any[], rbPctField: string, rebatePctField: string) => {
+      // Group by referred player
+      const byPlayer = new Map<string, any>()
+      for (const deal of deals) {
+        const playerName = deal.account.user.name
+        const accountName = deal.account.nickname
+        const clubName = deal.club.name
+        const key = `${deal.account.user.name}-${deal.club.id}`
+        if (!byPlayer.has(key)) {
+          byPlayer.set(key, { playerName, accountName, clubName, totalRake: 0, totalRb: 0, totalRebate: 0, netCommission: 0 })
+        }
+        const entry = byPlayer.get(key)!
+        for (const r of deal.account.weeklyReports) {
+          const rake = r.rake ?? 0
+          const result = r.result ?? 0
+          const rbPct = deal[rbPctField] ?? 0
+          const rebatePct = deal[rebatePctField] ?? 0
+          const rb = rake * rbPct
+          const rebate = rebatePct > 0 ? (result + rb) * rebatePct : 0
+          entry.totalRake += rake
+          entry.totalRb += rb
+          entry.totalRebate += rebate
+          entry.netCommission += rb - rebate
+        }
+      }
+      return Array.from(byPlayer.values())
+    }
+
+    const referralCommissions = [
+      ...calcReferrerEarnings(referrer1DealsRaw, "referrer1RakebackPct", "referrer1RebatePct"),
+      ...calcReferrerEarnings(referrer2DealsRaw, "referrer2RakebackPct", "referrer2RebatePct"),
+    ]
+
+    const referralBalance = referralCommissions.reduce((s, c) => s + c.netCommission, 0)
+    const balanceUsd = weeklyTotal + uplineBalance + referralBalance + txTotal
 
     const weekMap = new Map<string, any>()
     for (const account of user.accounts) {
@@ -138,6 +200,7 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
       weeks,
       transactions: user.transactions,
       uplineClubs,
+      referralCommissions,
     })
   } catch (error) {
     console.error(error)

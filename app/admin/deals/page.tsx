@@ -6,6 +6,12 @@ type Deal = {
   id: number
   rakebackPct: number
   rebatePct: number
+  referrer1UserId: number | null
+  referrer1RakebackPct: number
+  referrer1RebatePct: number
+  referrer2UserId: number | null
+  referrer2RakebackPct: number
+  referrer2RebatePct: number
   isActive: boolean
   account: {
     id: number
@@ -13,13 +19,19 @@ type Deal = {
     user: { id: number; name: string; telegramHandle: string | null }
   }
   club: { id: number; name: string; currency: string; app: string | null }
+  referrer1: { id: number; name: string } | null
+  referrer2: { id: number; name: string } | null
 }
 
 type User = { id: number; name: string }
 
 type Club = { id: number; name: string; currency: string }
 
-const emptyForm = { userId: "", clubId: "", rakebackPct: "50", rebatePct: "0" }
+const emptyForm = {
+  userId: "", clubId: "", rakebackPct: "50", rebatePct: "0",
+  referrer1UserId: "", referrer1RakebackPct: "0", referrer1RebatePct: "0",
+  referrer2UserId: "", referrer2RakebackPct: "0", referrer2RebatePct: "0",
+}
 
 export default function DealsPage() {
   const [deals, setDeals] = useState<Deal[]>([])
@@ -31,6 +43,12 @@ export default function DealsPage() {
   const [editDeal, setEditDeal] = useState<Deal | null>(null)
   const [editRb, setEditRb] = useState("")
   const [editRebate, setEditRebate] = useState("")
+  const [editRef1Id, setEditRef1Id] = useState("")
+  const [editRef1Rb, setEditRef1Rb] = useState("")
+  const [editRef1Rebate, setEditRef1Rebate] = useState("")
+  const [editRef2Id, setEditRef2Id] = useState("")
+  const [editRef2Rb, setEditRef2Rb] = useState("")
+  const [editRef2Rebate, setEditRef2Rebate] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
@@ -75,11 +93,21 @@ const fetchAll = async () => {
     const res = await fetch(`/api/deals/${editDeal.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rakebackPct: editRb, rebatePct: editRebate }),
+      body: JSON.stringify({
+        rakebackPct: editRb, rebatePct: editRebate,
+        referrer1UserId: editRef1Id || null,
+        referrer1RakebackPct: editRef1Rb,
+        referrer1RebatePct: editRef1Rebate,
+        referrer2UserId: editRef2Id || null,
+        referrer2RakebackPct: editRef2Rb,
+        referrer2RebatePct: editRef2Rebate,
+      }),
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error); setSaving(false); return }
     setEditDeal(null)
+    setEditRef1Id(""); setEditRef1Rb(""); setEditRef1Rebate("")
+    setEditRef2Id(""); setEditRef2Rb(""); setEditRef2Rebate("")
     await fetchAll()
     setSaving(false)
   }
@@ -164,7 +192,7 @@ const fetchAll = async () => {
           <div style={{ fontSize: 11, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             New Deal
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px", gap: 10, alignItems: "end" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px", gap: 10, alignItems: "end", marginBottom: 10 }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">User *</label>
               <select className="form-select" value={form.userId}
@@ -196,6 +224,48 @@ const fetchAll = async () => {
                 onChange={e => setForm({ ...form, rebatePct: e.target.value })} />
             </div>
           </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 80px 1fr 80px 80px", gap: 10, alignItems: "end" }}>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Referrer 1</label>
+              <select className="form-select" value={form.referrer1UserId}
+                onChange={e => setForm({ ...form, referrer1UserId: e.target.value })}>
+                <option value="">None</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Ref1 RB%</label>
+              <input className="form-input" type="number" step="0.5" min="0" max="100"
+                value={form.referrer1RakebackPct}
+                onChange={e => setForm({ ...form, referrer1RakebackPct: e.target.value })} />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Ref1 Reb%</label>
+              <input className="form-input" type="number" step="0.5" min="0" max="100"
+                value={form.referrer1RebatePct}
+                onChange={e => setForm({ ...form, referrer1RebatePct: e.target.value })} />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Referrer 2</label>
+              <select className="form-select" value={form.referrer2UserId}
+                onChange={e => setForm({ ...form, referrer2UserId: e.target.value })}>
+                <option value="">None</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Ref2 RB%</label>
+              <input className="form-input" type="number" step="0.5" min="0" max="100"
+                value={form.referrer2RakebackPct}
+                onChange={e => setForm({ ...form, referrer2RakebackPct: e.target.value })} />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Ref2 Reb%</label>
+              <input className="form-input" type="number" step="0.5" min="0" max="100"
+                value={form.referrer2RebatePct}
+                onChange={e => setForm({ ...form, referrer2RebatePct: e.target.value })} />
+            </div>
+          </div>
           {error && <div style={{ marginTop: 10, fontSize: 12, color: "var(--red)" }}>{error}</div>}
           <div style={{ marginTop: 14 }}>
             <button className="btn btn-accent" onClick={handleCreate} disabled={saving}>
@@ -215,23 +285,65 @@ const fetchAll = async () => {
               <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 16 }}>
                 {editDeal.account.user.name} · {editDeal.account.nickname} @ {editDeal.club.name}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div className="form-group">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Rakeback %</label>
                   <input className="form-input" type="number" step="0.5" min="0" max="100"
-                    value={editRb}
-                    onChange={e => setEditRb(e.target.value)} />
+                    value={editRb} onChange={e => setEditRb(e.target.value)} />
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Rebate %</label>
                   <input className="form-input" type="number" step="0.5" min="0" max="100"
-                    value={editRebate}
-                    onChange={e => setEditRebate(e.target.value)} />
+                    value={editRebate} onChange={e => setEditRebate(e.target.value)} />
+                </div>
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 500, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Referrers</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", gap: 8, marginBottom: 8 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Referrer 1</label>
+                  <select className="form-select" value={editRef1Id} onChange={e => setEditRef1Id(e.target.value)}>
+                    <option value="">None</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">RB%</label>
+                  <input className="form-input" type="number" step="0.5" min="0" max="100"
+                    value={editRef1Rb} onChange={e => setEditRef1Rb(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Rebate%</label>
+                  <input className="form-input" type="number" step="0.5" min="0" max="100"
+                    value={editRef1Rebate} onChange={e => setEditRef1Rebate(e.target.value)} />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px", gap: 8 }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Referrer 2</label>
+                  <select className="form-select" value={editRef2Id} onChange={e => setEditRef2Id(e.target.value)}>
+                    <option value="">None</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">RB%</label>
+                  <input className="form-input" type="number" step="0.5" min="0" max="100"
+                    value={editRef2Rb} onChange={e => setEditRef2Rb(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Rebate%</label>
+                  <input className="form-input" type="number" step="0.5" min="0" max="100"
+                    value={editRef2Rebate} onChange={e => setEditRef2Rebate(e.target.value)} />
                 </div>
               </div>
               {error && <div style={{ fontSize: 12, color: "var(--red)", marginBottom: 10 }}>{error}</div>}
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button className="btn" onClick={() => { setEditDeal(null); setEditRb(""); setEditRebate(""); setError("") }}>Cancel</button>
+                <button className="btn" onClick={() => {
+                  setEditDeal(null); setEditRb(""); setEditRebate("")
+                  setEditRef1Id(""); setEditRef1Rb(""); setEditRef1Rebate("")
+                  setEditRef2Id(""); setEditRef2Rb(""); setEditRef2Rebate("")
+                  setError("")
+                }}>Cancel</button>
                 <button className="btn btn-accent" onClick={handleEdit} disabled={saving}>
                   {saving ? "Saving..." : "Save"}
                 </button>
@@ -255,15 +367,16 @@ const fetchAll = async () => {
                 <th>Club</th>
                 <th>Rakeback %</th>
                 <th>Rebate %</th>
+                <th>Referrers</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>Loading...</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>Loading...</td></tr>
               ) : groupedDeals.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>No deals found</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: "center", padding: 32, color: "var(--text-tertiary)" }}>No deals found</td></tr>
               ) : groupedDeals.map(group => (
                 <tr key={group.key}>
                   <td>
@@ -282,13 +395,36 @@ const fetchAll = async () => {
                   <td><span className="val-pos">{(group.rakebackPct * 100).toFixed(1)}%</span></td>
                   <td><span style={{ color: "var(--amber)" }}>{(group.rebatePct * 100).toFixed(1)}%</span></td>
                   <td>
+                    {(() => {
+                      const d = group.deals[0]
+                      const refs = []
+                      if (d.referrer1) refs.push(`${d.referrer1.name} (${(d.referrer1RakebackPct * 100).toFixed(0)}%RB)`)
+                      if (d.referrer2) refs.push(`${d.referrer2.name} (${(d.referrer2RakebackPct * 100).toFixed(0)}%RB)`)
+                      return refs.length > 0
+                        ? <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{refs.join(" · ")}</div>
+                        : <span style={{ color: "var(--text-tertiary)", fontSize: 11 }}>—</span>
+                    })()}
+                  </td>
+                  <td>
                     <span className={`badge ${group.isActive ? "badge-active" : "badge-inactive"}`}>
                       {group.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button className="btn" onClick={() => { const d = group.deals[0]; setEditDeal(d); setEditRb(String(Math.round(d.rakebackPct * 100))); setEditRebate(String(Math.round(d.rebatePct * 100))); setError("") }}>Edit</button>
+                      <button className="btn" onClick={() => {
+                        const d = group.deals[0]
+                        setEditDeal(d)
+                        setEditRb(String(Math.round(d.rakebackPct * 100)))
+                        setEditRebate(String(Math.round(d.rebatePct * 100)))
+                        setEditRef1Id(d.referrer1UserId ? String(d.referrer1UserId) : "")
+                        setEditRef1Rb(String(Math.round((d.referrer1RakebackPct ?? 0) * 100)))
+                        setEditRef1Rebate(String(Math.round((d.referrer1RebatePct ?? 0) * 100)))
+                        setEditRef2Id(d.referrer2UserId ? String(d.referrer2UserId) : "")
+                        setEditRef2Rb(String(Math.round((d.referrer2RakebackPct ?? 0) * 100)))
+                        setEditRef2Rebate(String(Math.round((d.referrer2RebatePct ?? 0) * 100)))
+                        setError("")
+                      }}>Edit</button>
                       <button className={`btn ${group.isActive ? "btn-warning" : "btn-success"}`}
                         onClick={() => group.deals.forEach(d => handleToggle(d))}>
                         {group.isActive ? "Deactivate" : "Activate"}

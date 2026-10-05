@@ -39,11 +39,16 @@ type UplineClub = {
   rbPct: number; rebatePct: number
   totalResult: number; totalRake: number; totalGross: number; totalRebate: number; netOwed: number
 }
+type ReferralCommission = {
+  playerName: string; accountName: string; clubName: string
+  totalRake: number; totalRb: number; totalRebate: number; netCommission: number
+}
 type LedgerData = {
   user: { id: number; name: string; telegramHandle: string | null; balance: { amountUsd: number; amountEur: number } | null }
   weeks: Week[]
   transactions: Transaction[]
   uplineClubs: UplineClub[]
+  referralCommissions: ReferralCommission[]
 }
 
 const fmt = (n: number) =>
@@ -299,6 +304,65 @@ export default function LedgerPage() {
                   {(() => {
                     const total = data.uplineClubs.reduce((s, c) => s + c.netOwed, 0)
                     return `${total >= 0 ? "-" : "+"}${fmt(Math.abs(total))} USD`
+                  })()}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {data.referralCommissions && data.referralCommissions.length > 0 && (
+            <div className="card-flush" style={{ marginBottom: 16 }}>
+              <div style={{ padding: "14px 16px", borderBottom: "0.5px solid var(--border-subtle)" }}>
+                <span style={{ fontSize: 13, fontWeight: 500 }}>Referral Commissions</span>
+                <span style={{ fontSize: 11, color: "var(--text-tertiary)", marginLeft: 8 }}>
+                  players referred by {data.user.name}
+                </span>
+              </div>
+              <div style={{
+                display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px 120px 130px",
+                padding: "8px 16px", fontSize: 10, fontWeight: 500,
+                color: "var(--text-tertiary)", letterSpacing: "0.08em", textTransform: "uppercase",
+                borderBottom: "0.5px solid var(--border-subtle)"
+              }}>
+                <span>Player</span><span>Club</span>
+                <span style={{ textAlign: "right" }}>Total Rake</span>
+                <span style={{ textAlign: "right" }}>RB Commission</span>
+                <span style={{ textAlign: "right" }}>Rebate Deduct</span>
+                <span style={{ textAlign: "right" }}>Net Commission</span>
+              </div>
+              {data.referralCommissions.map((c, i) => (
+                <div key={i} style={{
+                  display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px 120px 130px",
+                  padding: "14px 16px", alignItems: "center", fontSize: 13,
+                  borderBottom: "0.5px solid var(--border-subtle)"
+                }}>
+                  <div>
+                    <div style={{ fontWeight: 500 }}>{c.playerName}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{c.accountName}</div>
+                  </div>
+                  <span style={{ color: "var(--text-secondary)" }}>{c.clubName}</span>
+                  <span style={{ textAlign: "right", color: "var(--text-secondary)" }}>{fmt(c.totalRake)} USD</span>
+                  <span style={{ textAlign: "right" }} className="val-pos">+{fmt(c.totalRb)} USD</span>
+                  <span style={{ textAlign: "right", color: "var(--red)", fontSize: 12 }}>
+                    {c.totalRebate > 0 ? `-${fmt(c.totalRebate)} USD` : "—"}
+                  </span>
+                  <span style={{ textAlign: "right", fontWeight: 600 }}
+                    className={c.netCommission >= 0 ? "val-pos" : "val-neg"}>
+                    {c.netCommission >= 0 ? "+" : "-"}{fmt(Math.abs(c.netCommission))} USD
+                  </span>
+                </div>
+              ))}
+              <div style={{
+                display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px 120px 130px",
+                padding: "12px 16px", background: "var(--bg-raised)",
+                borderTop: "1px solid var(--border)"
+              }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", gridColumn: "1 / 6" }}>Total Referral Commission</span>
+                <span style={{ textAlign: "right", fontWeight: 700, fontSize: 13 }}
+                  className={data.referralCommissions.reduce((s, c) => s + c.netCommission, 0) >= 0 ? "val-pos" : "val-neg"}>
+                  {(() => {
+                    const total = data.referralCommissions.reduce((s, c) => s + c.netCommission, 0)
+                    return `${total >= 0 ? "+" : "-"}${fmt(Math.abs(total))} USD`
                   })()}
                 </span>
               </div>

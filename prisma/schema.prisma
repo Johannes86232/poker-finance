@@ -57,6 +57,8 @@ model User {
   sentTransactions Transaction[] @relation("SentTransactions")
   balance          Balance?
   uplineForClubs   Club[]        @relation("ClubUpline")
+  referrer1Deals   Deal[]        @relation("Referrer1Deals")
+  referrer2Deals   Deal[]        @relation("Referrer2Deals")
 }
 
 model Club {
@@ -104,11 +106,19 @@ model Deal {
   clubRebatePct   Float    @default(0)
   rakebackPct     Float    @default(0)
   rebatePct       Float    @default(0)
+  referrer1UserId    Int?
+  referrer1RakebackPct Float @default(0)
+  referrer1RebatePct   Float @default(0)
+  referrer2UserId    Int?
+  referrer2RakebackPct Float @default(0)
+  referrer2RebatePct   Float @default(0)
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
 
-  account Account @relation(fields: [accountId], references: [id])
-  club    Club    @relation(fields: [clubId], references: [id])
+  account    Account @relation(fields: [accountId], references: [id])
+  club       Club    @relation(fields: [clubId], references: [id])
+  referrer1  User?   @relation("Referrer1Deals", fields: [referrer1UserId], references: [id])
+  referrer2  User?   @relation("Referrer2Deals", fields: [referrer2UserId], references: [id])
 }
 
 model Week {
