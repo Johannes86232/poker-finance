@@ -44,14 +44,27 @@ export async function GET() {
       }, 0)
 
       // Balance from being an upline: negative = upline owes us
-      // When players win (positive result), the upline owes us that money → their balance is negative
-      // Formula: -(result + rake * uplineRakebackPct) so that when players win, Angelo has a negative balance
       const uplineBalance = u.uplineForClubs.reduce((clubSum: number, club: any) => {
         const rbPct = club.uplineRakebackPct ?? 0
+        const rebatePct = club.uplineRebatePct ?? 0
+        const rebateOn100Rake = club.rebateOn100Rake ?? false
+        const rebateOnRakeback = club.rebateOnRakeback ?? false
         return clubSum + club.deals.reduce((dealSum: number, deal: any) => {
           return dealSum + deal.account.weeklyReports.reduce((rSum: number, r: any) => {
-            // Negate: upline owes us when players win → negative balance means they owe us
-            return rSum - ((r.result ?? 0) + (r.rake ?? 0) * rbPct)
+            const result = r.result ?? 0
+            const rake = r.rake ?? 0
+            const rbAmount = rake * rbPct
+            // Upline gross = result + their rakeback share
+            const gross = result + rbAmount
+            // Rebate reduces what upline owes us
+            let rebateAmount = 0
+            if (rebateOn100Rake) {
+              rebateAmount = (result + rake) * rebatePct
+            } else if (rebateOnRakeback) {
+              rebateAmount = gross * rebatePct
+            }
+            // Negate: upline owes us → negative balance
+            return rSum - (gross - rebateAmount)
           }, 0)
         }, 0)
       }, 0)

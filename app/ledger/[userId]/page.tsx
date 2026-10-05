@@ -201,6 +201,7 @@ export default function LedgerPage() {
                             <th style={{ textAlign: "right" }}>BBJ</th>
                             <th style={{ textAlign: "right" }}>MTT</th>
                             <th style={{ textAlign: "right" }}>RB</th>
+                            <th style={{ textAlign: "right" }}>Rebate</th>
                             <th style={{ textAlign: "right" }}>Total USD</th>
                           </tr>
                         </thead>
@@ -218,6 +219,9 @@ export default function LedgerPage() {
                               <td style={{ textAlign: "right", color: "var(--text-tertiary)" }}>{a.bbj.toFixed(2)}</td>
                               <td style={{ textAlign: "right", color: "var(--text-tertiary)" }}>{a.mtt.toFixed(2)}</td>
                               <td style={{ textAlign: "right" }} className="val-pos">+{fmt(a.rakebackAmount)} USD</td>
+                              <td style={{ textAlign: "right", color: "var(--red)", fontSize: 12 }}>
+                                {a.rebatePct > 0 ? `-${fmt((a.result + a.rakebackAmount) * a.rebatePct)} USD` : "—"}
+                              </td>
                               <td style={{ textAlign: "right", fontWeight: 600 }} className={a.netResult >= 0 ? "val-pos" : "val-neg"}>
                                 {a.netResult >= 0 ? "+" : "-"}{fmt(a.netResult)} USD
                               </td>
