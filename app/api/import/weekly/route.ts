@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     type RowData = {
       piaId: string; screenName: string
       resultUsd: number; rakeUsd: number; xeRate: number
-      accountId: number; rakebackPct: number
+      accountId: number; rakebackPct: number; rebatePct: number
     }
     const resolved: RowData[] = []
     const missingDeals: string[] = []
@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
         xeRate,
         accountId: account.id,
         rakebackPct: deal.rakebackPct ?? 0,
+        rebatePct: deal.rebatePct ?? 0,
       })
     }
 
@@ -137,7 +138,11 @@ export async function POST(req: NextRequest) {
 
     for (const row of resolved) {
       const rakebackAmount = row.rakeUsd * row.rakebackPct
-      const netResult = row.resultUsd + rakebackAmount
+      // netResult = what we owe the player (or they owe us if negative)
+      // Rebate is a % the player pays back on their net position
+      const grossResult = row.resultUsd + rakebackAmount
+      const rebateAmount = grossResult * row.rebatePct
+      const netResult = grossResult - rebateAmount
 
       try {
         await prisma.weeklyReport.upsert({
