@@ -34,10 +34,16 @@ type Transaction = {
   week: { year: number; weekNum: number } | null
   toUser: { name: string } | null
 }
+type UplineClub = {
+  clubId: number; clubName: string
+  rbPct: number; rebatePct: number
+  totalResult: number; totalRake: number; totalGross: number; totalRebate: number; netOwed: number
+}
 type LedgerData = {
   user: { id: number; name: string; telegramHandle: string | null; balance: { amountUsd: number; amountEur: number } | null }
   weeks: Week[]
   transactions: Transaction[]
+  uplineClubs: UplineClub[]
 }
 
 const fmt = (n: number) =>
@@ -235,6 +241,69 @@ export default function LedgerPage() {
               )
             })}
           </div>
+
+          {data.uplineClubs && data.uplineClubs.length > 0 && (
+            <div className="card-flush" style={{ marginBottom: 16 }}>
+              <div style={{ padding: "14px 16px", borderBottom: "0.5px solid var(--border-subtle)" }}>
+                <span style={{ fontSize: 13, fontWeight: 500 }}>Upline Obligations</span>
+                <span style={{ fontSize: 11, color: "var(--text-tertiary)", marginLeft: 8 }}>
+                  clubs where {data.user.name} is the upline agent
+                </span>
+              </div>
+              <div style={{
+                display: "grid", gridTemplateColumns: "1fr 80px 80px 120px 120px 120px 120px",
+                padding: "8px 16px", fontSize: 10, fontWeight: 500,
+                color: "var(--text-tertiary)", letterSpacing: "0.08em", textTransform: "uppercase",
+                borderBottom: "0.5px solid var(--border-subtle)"
+              }}>
+                <span>Club</span>
+                <span style={{ textAlign: "right" }}>RB%</span>
+                <span style={{ textAlign: "right" }}>Rebate%</span>
+                <span style={{ textAlign: "right" }}>Player Result</span>
+                <span style={{ textAlign: "right" }}>RB Amount</span>
+                <span style={{ textAlign: "right" }}>Rebate Deduct</span>
+                <span style={{ textAlign: "right" }}>Owes Us</span>
+              </div>
+              {data.uplineClubs.map(c => (
+                <div key={c.clubId} style={{
+                  display: "grid", gridTemplateColumns: "1fr 80px 80px 120px 120px 120px 120px",
+                  padding: "14px 16px", alignItems: "center", fontSize: 13,
+                  borderBottom: "0.5px solid var(--border-subtle)"
+                }}>
+                  <span style={{ fontWeight: 500 }}>{c.clubName}</span>
+                  <span style={{ textAlign: "right", color: "var(--green)" }}>{(c.rbPct * 100).toFixed(1)}%</span>
+                  <span style={{ textAlign: "right", color: "var(--amber)" }}>{(c.rebatePct * 100).toFixed(1)}%</span>
+                  <span style={{ textAlign: "right" }} className={c.totalResult >= 0 ? "val-pos" : "val-neg"}>
+                    {c.totalResult >= 0 ? "+" : "-"}{fmt(c.totalResult)} USD
+                  </span>
+                  <span style={{ textAlign: "right" }} className="val-pos">
+                    +{fmt(c.totalGross - c.totalResult)} USD
+                  </span>
+                  <span style={{ textAlign: "right", color: "var(--red)", fontSize: 12 }}>
+                    {c.totalRebate > 0 ? `-${fmt(c.totalRebate)} USD` : "—"}
+                  </span>
+                  <span style={{ textAlign: "right", fontWeight: 600 }}
+                    className={c.netOwed >= 0 ? "val-neg" : "val-pos"}>
+                    {c.netOwed >= 0 ? `-${fmt(c.netOwed)}` : `+${fmt(Math.abs(c.netOwed))}`} USD
+                  </span>
+                </div>
+              ))}
+              <div style={{
+                display: "grid", gridTemplateColumns: "1fr 80px 80px 120px 120px 120px 120px",
+                padding: "12px 16px", background: "var(--bg-raised)",
+                borderTop: "1px solid var(--border)"
+              }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", gridColumn: "1 / 7" }}>Total Upline Obligations</span>
+                <span style={{ textAlign: "right", fontWeight: 700, fontSize: 13 }}
+                  className={data.uplineClubs.reduce((s, c) => s + c.netOwed, 0) >= 0 ? "val-neg" : "val-pos"}>
+                  {(() => {
+                    const total = data.uplineClubs.reduce((s, c) => s + c.netOwed, 0)
+                    return `${total >= 0 ? "-" : "+"}${fmt(Math.abs(total))} USD`
+                  })()}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="card-flush">
             <div style={{ padding: "14px 16px", borderBottom: "0.5px solid var(--border-subtle)" }}>

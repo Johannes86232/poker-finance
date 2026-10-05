@@ -31,6 +31,21 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
 
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
+    // Also fetch clubs where this user is the upline
+    const uplineClubsRaw = await prisma.club.findMany({
+      where: { uplineUserId: userId, isActive: true },
+      include: {
+        deals: {
+          where: { isActive: true },
+          include: {
+            account: {
+              include: { weeklyReports: { include: { week: true } } }
+            }
+          }
+        }
+      }
+    })
+
     const weeklyTotal = user.accounts.reduce((sum: number, acc: any) =>
       sum + acc.weeklyReports.reduce((s: number, r: any) => s + (r.netResult ?? 0), 0), 0)
     const txTotal = user.transactions.reduce((sum: number, tx: any) => {
@@ -38,7 +53,54 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
       if (tx.direction === "USER_PAYS_ME") return sum + tx.amount
       return sum
     }, 0)
-    const balanceUsd = weeklyTotal + txTotal
+
+    // Upline balance: what this user owes us as upline of various clubs
+    // Negative = they owe us (we are owed), positive = we owe them
+    const uplineClubs = uplineClubsRaw.map((club: any) => {
+      const rbPct = club.uplineRakebackPct ?? 0
+      const rebatePct = club.uplineRebatePct ?? 0
+      const rebateOn100Rake = club.rebateOn100Rake ?? false
+      const rebateOnRakeback = club.rebateOnRakeback ?? false
+
+      let totalResult = 0, totalRake = 0, totalGross = 0, totalRebate = 0, totalNet = 0
+
+      for (const deal of club.deals) {
+        for (const r of deal.account.weeklyReports) {
+          const result = r.result ?? 0
+          const rake = r.rake ?? 0
+          const rbAmount = rake * rbPct
+          const gross = result + rbAmount
+          let rebateAmount = 0
+          if (rebateOn100Rake) {
+            rebateAmount = (result + rake) * rebatePct
+          } else if (rebateOnRakeback) {
+            rebateAmount = gross * rebatePct
+          }
+          const net = gross - rebateAmount
+          totalResult += result
+          totalRake += rake
+          totalGross += gross
+          totalRebate += rebateAmount
+          totalNet += net
+        }
+      }
+
+      return {
+        clubId: club.id,
+        clubName: club.name,
+        rbPct,
+        rebatePct,
+        totalResult,
+        totalRake,
+        totalGross,
+        totalRebate,
+        // net = what upline owes us (positive = they owe us)
+        netOwed: totalNet,
+      }
+    }).filter((c: any) => c.netOwed !== 0 || uplineClubsRaw.length > 0)
+
+    const uplineBalance = -uplineClubs.reduce((s: any, c: any) => s + c.netOwed, 0)
+    const balanceUsd = weeklyTotal + uplineBalance + txTotal
 
     const weekMap = new Map<string, any>()
     for (const account of user.accounts) {
@@ -75,6 +137,7 @@ export async function GET(req: NextRequest, { params }: { params: any }) {
         balance: { amountUsd: balanceUsd, amountEur: 0 } },
       weeks,
       transactions: user.transactions,
+      uplineClubs,
     })
   } catch (error) {
     console.error(error)
