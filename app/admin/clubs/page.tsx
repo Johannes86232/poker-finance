@@ -9,6 +9,8 @@ interface Club {
   uplineUserId: number | null; uplineUser: User | null
   uplineRakebackPct: number; uplineRebatePct: number
   rebateOnRakeback: boolean; rebateOn100Rake: boolean
+  referrerUserId: number | null; referrerUser: User | null
+  referrerRakebackPct: number; referrerRebatePct: number
   _count: { deals: number }
 }
 
@@ -26,6 +28,7 @@ const emptyForm = {
   name: "", app: "", currency: "USD", calcType: "STANDARD", chipValue: "1",
   uplineUserId: "", uplineRakebackPct: "", uplineRebatePct: "",
   rebateOnRakeback: false, rebateOn100Rake: false,
+  referrerUserId: "", referrerRakebackPct: "", referrerRebatePct: "",
 }
 
 export default function ClubsPage() {
@@ -65,6 +68,9 @@ export default function ClubsPage() {
       uplineRebatePct: club.uplineRebatePct ? String(Math.round(club.uplineRebatePct * 100)) : "",
       rebateOnRakeback: club.rebateOnRakeback ?? false,
       rebateOn100Rake: club.rebateOn100Rake ?? false,
+      referrerUserId: club.referrerUserId ? String(club.referrerUserId) : "",
+      referrerRakebackPct: club.referrerRakebackPct ? String(Math.round(club.referrerRakebackPct * 100)) : "",
+      referrerRebatePct: club.referrerRebatePct ? String(Math.round(club.referrerRebatePct * 100)) : "",
     })
     setShowCreate(false); setEditClub(club)
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50)
@@ -73,7 +79,7 @@ export default function ClubsPage() {
   async function submitCreate() {
     const res = await fetch("/api/clubs", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, chipValue: parseFloat(form.chipValue) || 1, uplineUserId: form.uplineUserId ? parseInt(form.uplineUserId) : null }),
+      body: JSON.stringify({ ...form, chipValue: parseFloat(form.chipValue) || 1, uplineUserId: form.uplineUserId ? parseInt(form.uplineUserId) : null, referrerUserId: form.referrerUserId ? parseInt(form.referrerUserId) : null }),
     })
     if (res.ok) { setShowCreate(false); fetchAll() }
     else { const err = await res.json(); alert("Error: " + (err.error || "unknown")) }
@@ -83,7 +89,7 @@ export default function ClubsPage() {
     if (!editClub) return
     const res = await fetch("/api/clubs", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: editClub.id, ...form, chipValue: parseFloat(form.chipValue) || 1, uplineUserId: form.uplineUserId ? parseInt(form.uplineUserId) : null }),
+      body: JSON.stringify({ id: editClub.id, ...form, chipValue: parseFloat(form.chipValue) || 1, uplineUserId: form.uplineUserId ? parseInt(form.uplineUserId) : null, referrerUserId: form.referrerUserId ? parseInt(form.referrerUserId) : null }),
     })
     if (res.ok) { setEditClub(null); fetchAll() }
     else { const err = await res.json(); alert("Error: " + (err.error || "unknown")) }
@@ -162,6 +168,26 @@ export default function ClubsPage() {
           <Toggle field="rebateOn100Rake" label="Rebate on 100% Rake" />
         </div>
       </div>
+      <div style={{ gridColumn: "1 / -1", borderTop: "1px solid #374151", paddingTop: 16, marginTop: 4 }}>
+        {label("Referrer (optional)")}
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 10, marginTop: 4 }}>
+          <div>
+            {label("Referrer (User)")}
+            <select style={inp} value={form.referrerUserId} onChange={e => setForm(p => ({ ...p, referrerUserId: e.target.value }))}>
+              <option value="">— kein Referrer —</option>
+              {users.map(u => <option key={u.id} value={String(u.id)}>{u.name}</option>)}
+            </select>
+          </div>
+          <div>
+            {label("Referrer RB %")}
+            <input style={inp} value={form.referrerRakebackPct} onChange={e => setForm(p => ({ ...p, referrerRakebackPct: e.target.value }))} placeholder="z.B. 5" />
+          </div>
+          <div>
+            {label("Referrer Rebate %")}
+            <input style={inp} value={form.referrerRebatePct} onChange={e => setForm(p => ({ ...p, referrerRebatePct: e.target.value }))} placeholder="z.B. 0" />
+          </div>
+        </div>
+      </div>
     </div>
   )
 
@@ -196,7 +222,7 @@ export default function ClubsPage() {
               <thead>
                 <tr>
                   <th>Name</th><th>App</th><th>Currency</th><th>Upline</th>
-                  <th>Upline RB%</th><th>Rebate Calc</th><th>Deals</th><th>Status</th><th>Actions</th>
+                  <th>Upline RB%</th><th>Referrer</th><th>Rebate Calc</th><th>Deals</th><th>Status</th><th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -210,6 +236,11 @@ export default function ClubsPage() {
                     <td>{club.currency}</td>
                     <td>{club.uplineUser?.name || "—"}</td>
                     <td>{club.uplineRakebackPct ? `${Math.round(club.uplineRakebackPct * 100)}%` : "—"}</td>
+                    <td style={{ fontSize: 13 }}>
+                      {club.referrerUser
+                        ? <span>{club.referrerUser.name} <span style={{ color: "var(--text-tertiary)" }}>({Math.round(club.referrerRakebackPct * 100)}%)</span></span>
+                        : <span style={{ color: "var(--text-tertiary)" }}>—</span>}
+                    </td>
                     <td style={{ fontSize: 11 }}>
                       {club.rebateOnRakeback && <div style={{ color: "var(--accent)" }}>on RB</div>}
                       {club.rebateOn100Rake && <div style={{ color: "var(--amber)" }}>on 100% rake</div>}
