@@ -19,6 +19,20 @@ export async function GET() {
         },
         transactions: true,
         _count: { select: { accounts: true } },
+        // Clubs where this user is the upline
+        uplineForClubs: {
+          where: { isActive: true },
+          include: {
+            deals: {
+              where: { isActive: true },
+              include: {
+                account: {
+                  include: { weeklyReports: true }
+                }
+              }
+            }
+          }
+        }
       },
       orderBy: { createdAt: "asc" },
     })
@@ -26,6 +40,7 @@ export async function GET() {
     let uplineOwes = 0
 
     const usersWithBalance = users.map((u: any) => {
+      // Balance from own accounts (downline players)
       const weeklyTotal = u.accounts.reduce((sum: number, acc: any) => {
         const deal = acc.deals?.[0]
         const clubRbPct = deal?.club?.uplineRakebackPct ?? 0
@@ -35,13 +50,26 @@ export async function GET() {
         return sum + acc.weeklyReports.reduce((s: number, r: any) => s + (r.netResult ?? 0), 0)
       }, 0)
 
+      // Balance from being an upline: sum of (result + rake * uplineRakebackPct) across all accounts in clubs where this user is upline
+      const uplineBalance = u.uplineForClubs.reduce((clubSum: number, club: any) => {
+        const rbPct = club.uplineRakebackPct ?? 0
+        return clubSum + club.deals.reduce((dealSum: number, deal: any) => {
+          return dealSum + deal.account.weeklyReports.reduce((rSum: number, r: any) => {
+            // Upline owes us: result (players winning = upline pays) + rake share
+            return rSum + (r.result ?? 0) + (r.rake ?? 0) * rbPct
+          }, 0)
+        }, 0)
+      }, 0)
+
       const txTotal = u.transactions.reduce((sum: number, tx: any) => {
         if (tx.direction === "I_PAY_USER") return sum - tx.amount
         if (tx.direction === "USER_PAYS_ME") return sum + tx.amount
         return sum
       }, 0)
 
-      return { ...u, balance: { amountUsd: weeklyTotal + txTotal, amountEur: 0 } }
+      const totalBalance = weeklyTotal + uplineBalance + txTotal
+
+      return { ...u, balance: { amountUsd: totalBalance, amountEur: 0 } }
     })
 
     const totalUsd = usersWithBalance.reduce((s: number, u: any) => s + u.balance.amountUsd, 0)
