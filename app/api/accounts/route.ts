@@ -26,7 +26,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { userId, app, nickname, accountId, superagent, agent } = body
+    const { userId, app, nickname, accountId } = body
 
     if (!userId || !nickname) {
       return NextResponse.json({ error: "User and Nickname are required" }, { status: 400 })
@@ -38,8 +38,6 @@ export async function POST(req: NextRequest) {
         app: app || null,
         nickname,
         accountId: accountId || null,
-        superagent: superagent || null,
-        agent: agent || null,
       },
       include: {
         user: { select: { id: true, name: true } },

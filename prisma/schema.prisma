@@ -93,8 +93,6 @@ model Account {
   app        String?
   nickname   String
   accountId  String?
-  superagent String?
-  agent      String?
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
 
