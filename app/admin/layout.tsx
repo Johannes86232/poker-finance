@@ -19,6 +19,7 @@ const nav = [
     items: [
       { label: "Transactions", href: "/admin/transactions", icon: "ti-arrows-exchange" },
       { label: "Import Reports", href: "/admin/import", icon: "ti-upload" },
+      { label: "Daten importieren", href: "/admin/import/data", icon: "ti-database-import" },
       { label: "FX Rates", href: "/admin/exchange-rates", icon: "ti-currency-dollar" },
     ],
   },

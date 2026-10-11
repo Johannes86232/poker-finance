@@ -44,9 +44,11 @@ enum CalcType {
 
 model User {
   id             Int      @id @default(autoincrement())
-  telegramId     String?  @unique
-  telegramHandle String?
-  name           String
+  telegramId        String?  @unique
+  telegramHandle    String?
+  telegramGroupId   String?
+  telegramGroupName String?
+  name              String
   email          String?  @unique
   role           Role     @default(USER)
   isActive       Boolean  @default(true)
