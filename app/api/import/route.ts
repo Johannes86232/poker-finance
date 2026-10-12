@@ -106,32 +106,56 @@ async function importClubs(rows: any[]) {
 }
 
 async function importAccounts(rows: any[]) {
-  // Build lookups
-  const users = await prisma.user.findMany({ select: { id: true, name: true } })
+  // Build lookups — 2 queries total upfront
+  const [users, clubs, existingAccounts] = await Promise.all([
+    prisma.user.findMany({ select: { id: true, name: true } }),
+    prisma.club.findMany({ select: { id: true, name: true } }),
+    prisma.account.findMany({ select: { id: true, userId: true, nickname: true, accountId: true, app: true } }),
+  ])
+
   const userMap = new Map<string, number>()
   for (const u of users) userMap.set(u.name.toLowerCase().trim(), u.id)
 
-  const clubs = await prisma.club.findMany({ select: { id: true, name: true } })
   const clubMap = new Map<string, number>()
   for (const c of clubs) clubMap.set(c.name.toLowerCase().trim(), c.id)
 
-  const results: any[] = []
+  // accountKey → existing account
+  const accountMap = new Map<string, { id: number; accountId: string | null; app: string | null }>()
+  for (const a of existingAccounts) accountMap.set(`${a.userId}:${a.nickname}`, { id: a.id, accountId: a.accountId, app: a.app })
+
+  // Parse all rows first — resolve user/club IDs in memory
+  type ParsedRow = {
+    rawUserName: string
+    matchedUserName: string
+    nickname: string
+    clubName: string
+    userId: number
+    clubId: number
+    accountId: string | null
+    app: string | null
+    rakebackPct: number
+    rebatePct: number
+    ref1UserId: number | null
+    ref1RbPct: number
+    ref2UserId: number | null
+    ref2RbPct: number
+    warnings: string[]
+  }
+
+  const parsed: ParsedRow[] = []
+  const skipped: any[] = []
+
   for (const row of rows) {
     const rawUserName = String(row.user_name || "").trim()
     const nickname = String(row.nickname || "").trim()
     const clubName = String(row.club_name || "").trim()
     if (!rawUserName || !nickname || !clubName) continue
 
-    // user_name format: "UserName-suffix" — strip suffix after last "-"
-    // But some names contain "-" (e.g. "Josh ( Pinnacle )"), so we match greedily against known users
     let userId: number | null = null
     let matchedUserName = rawUserName
-    // Try full name first
     if (userMap.has(rawUserName.toLowerCase())) {
       userId = userMap.get(rawUserName.toLowerCase())!
-      matchedUserName = rawUserName
     } else {
-      // Try progressively shorter suffixes (strip last "-word")
       const parts = rawUserName.split("-")
       for (let i = parts.length - 1; i >= 1; i--) {
         const candidate = parts.slice(0, i).join("-").trim()
@@ -148,7 +172,6 @@ async function importAccounts(rows: any[]) {
     const app = row.app ? String(row.app).trim() : null
     const rakebackPct = row.rakeback_pct ? parseFloat(String(row.rakeback_pct)) / 100 : 0
     const rebatePct = row.rebate_pct ? parseFloat(String(row.rebate_pct)) / 100 : 0
-
     const ref1Name = row.referrer1_name ? String(row.referrer1_name).trim() : null
     const ref2Name = row.referrer2_name ? String(row.referrer2_name).trim() : null
     const ref1UserId = ref1Name ? (userMap.get(ref1Name.toLowerCase()) ?? null) : null
@@ -163,59 +186,93 @@ async function importAccounts(rows: any[]) {
     if (ref2Name && !ref2UserId) warnings.push(`Referrer2 '${ref2Name}' not found`)
 
     if (!userId || !clubId) {
-      results.push({ row: rawUserName + " / " + nickname + " / " + clubName, status: "skip", warnings })
+      skipped.push({ row: rawUserName + " / " + nickname + " / " + clubName, status: "skip", warnings })
       continue
     }
 
-    try {
-      // Find or create account: match by userId + nickname (unique combo)
-      let account = await prisma.account.findFirst({
-        where: { userId, nickname },
-      })
-      if (!account) {
-        account = await prisma.account.create({
-          data: { userId, nickname, accountId, app },
-        })
-      } else {
-        account = await prisma.account.update({
-          where: { id: account.id },
-          data: { accountId: accountId || account.accountId, app: app || account.app },
-        })
-      }
+    parsed.push({ rawUserName, matchedUserName, nickname, clubName, userId, clubId, accountId, app, rakebackPct, rebatePct, ref1UserId, ref1RbPct, ref2UserId, ref2RbPct, warnings })
+  }
 
-      // Upsert deal: deactivate existing active deal for this account+club, then create new
-      await prisma.deal.updateMany({
-        where: { accountId: account.id, clubId, isActive: true },
-        data: { isActive: false },
-      })
-      const deal = await prisma.deal.create({
-        data: {
-          accountId: account.id,
-          clubId,
-          rakebackPct,
-          rebatePct,
-          referrer1UserId: ref1UserId,
-          referrer1RakebackPct: ref1RbPct,
-          referrer2UserId: ref2UserId,
-          referrer2RakebackPct: ref2RbPct,
-        },
-      })
+  // Split into accounts to create vs update
+  const toCreate = parsed.filter(r => !accountMap.has(`${r.userId}:${r.nickname}`))
+  const toUpdate = parsed.filter(r => accountMap.has(`${r.userId}:${r.nickname}`))
 
-      results.push({
-        row: matchedUserName + " / " + nickname + " / " + clubName,
-        status: "ok",
-        accountId: account.id,
-        dealId: deal.id,
-        warnings,
-      })
-    } catch (e: any) {
-      results.push({
-        row: rawUserName + " / " + nickname + " / " + clubName,
-        status: "error",
-        error: String(e),
-        warnings,
+  // Batch-create new accounts
+  const createdAccounts = new Map<string, number>() // "userId:nickname" → new id
+  if (toCreate.length > 0) {
+    // createMany doesn't return ids in Prisma, so we create in a transaction but fetch ids after
+    await prisma.account.createMany({
+      data: toCreate.map(r => ({ userId: r.userId, nickname: r.nickname, accountId: r.accountId, app: r.app })),
+      skipDuplicates: true,
+    })
+    // Reload newly created accounts
+    const newAccounts = await prisma.account.findMany({
+      where: { userId: { in: toCreate.map(r => r.userId) } },
+      select: { id: true, userId: true, nickname: true },
+    })
+    for (const a of newAccounts) createdAccounts.set(`${a.userId}:${a.nickname}`, a.id)
+  }
+
+  // Batch-update existing accounts (only if accountId/app changed)
+  for (const r of toUpdate) {
+    const existing = accountMap.get(`${r.userId}:${r.nickname}`)!
+    if ((r.accountId && r.accountId !== existing.accountId) || (r.app && r.app !== existing.app)) {
+      await prisma.account.update({
+        where: { id: existing.id },
+        data: { accountId: r.accountId || existing.accountId, app: r.app || existing.app },
       })
     }
   }
+
+  // Resolve all account IDs for deal creation
+  const allAccountIds = parsed.map(r => {
+    const key = `${r.userId}:${r.nickname}`
+    return accountMap.get(key)?.id ?? createdAccounts.get(key) ?? null
+  })
+
+  // Batch deactivate all existing active deals for affected account+club combos
+  const accountClubPairs = parsed
+    .map((r, i) => ({ accountId: allAccountIds[i], clubId: r.clubId }))
+    .filter(p => p.accountId !== null) as { accountId: number; clubId: number }[]
+
+  if (accountClubPairs.length > 0) {
+    // Prisma doesn't support OR with tuples, so we do it in one updateMany per unique accountId batch
+    const accountIds = [...new Set(accountClubPairs.map(p => p.accountId))]
+    await prisma.deal.updateMany({
+      where: { accountId: { in: accountIds }, isActive: true },
+      data: { isActive: false },
+    })
+  }
+
+  // Batch-create all deals
+  const dealData = parsed
+    .map((r, i) => {
+      const accId = allAccountIds[i]
+      if (!accId) return null
+      return {
+        accountId: accId,
+        clubId: r.clubId,
+        rakebackPct: r.rakebackPct,
+        rebatePct: r.rebatePct,
+        referrer1UserId: r.ref1UserId,
+        referrer1RakebackPct: r.ref1RbPct,
+        referrer2UserId: r.ref2UserId,
+        referrer2RakebackPct: r.ref2RbPct,
+        isActive: true,
+      }
+    })
+    .filter(Boolean) as any[]
+
+  await prisma.deal.createMany({ data: dealData })
+
+  const results: any[] = [
+    ...skipped,
+    ...parsed.map((r, i) => ({
+      row: r.matchedUserName + " / " + r.nickname + " / " + r.clubName,
+      status: allAccountIds[i] ? "ok" : "error",
+      warnings: r.warnings,
+    })),
+  ]
+
   return NextResponse.json({ type: "accounts", results })
 }
